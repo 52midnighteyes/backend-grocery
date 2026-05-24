@@ -7,54 +7,392 @@ datasource db {
   provider = "postgresql"
 }
 
-enum UserRole {
-  CUSTOMER
-  ORGANIZER
-  ADMIN
+// --------------------------------------------------------
+// ENUMS
+// --------------------------------------------------------
+
+enum TransactionStatus {
+  waitingPayment
+  paid
+  process
+  onDelivery
+  cancel
+  confirmed
+}
+
+enum DiscountType {
+  percentage
+  nominal
+  buyXGetY
+}
+
+enum VoucherDiscountType {
+  percentage
+  nominal
+}
+
+enum VoucherType {
+  transaction
+  delivery
+}
+
+enum StockMovement {
+  purchase
+  sale
+  returnIn
+  returnOut
+  adjustmentIn
+  adjustmentOut
+  transferIn
+  transferOut
+  damaged
+  expired
+  lost
+}
+
+// --------------------------------------------------------
+// MODELS
+// --------------------------------------------------------
+
+model Store {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  latitude  Decimal?
+  longitude Decimal?
+  address   String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  productStocks  ProductStock[]
+  stockHistories StockHistory[]
+  transactions   Transaction[]
+
+  @@map("store")
+}
+
+model Role {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  users User[]
+
+  @@map("role")
 }
 
 model User {
-  id             String    @id @default(uuid()) 
-  firstName      String    @map("first_name") @db.VarChar(20)
-  lastName       String    @map("last_name") @db.VarChar(20)
-  email          String    @unique
-  passwordHash   String    @map("password_hash")
-  avatarUrl      String?   @map("avatar_url")
-  avatarPublicId String?   @map("avatar_public_id")
-  role           UserRole  @default(CUSTOMER)
-  referralCode   String    @unique @map("referral_code")
-  referrerUserId String?   @map("referrer_user_id")
-  isVerified     Boolean   @default(false) @map("is_verified")
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
-  deletedAt      DateTime? @map("deleted_at")
+  id           String    @id @default(uuid())
+  name         String
+  roleId       String
+  email        String    @unique
+  password     String
+  avatar       String?
+  isVerified   Boolean   @default(false)
+  referralCode String?   @unique
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
 
-  passwordResetTokens PasswordResetToken[]
-  refreshTokens       RefreshToken[]
-  @@map("users")
+  role      Role          @relation(fields: [roleId], references: [id])
+  addresses UserAddress[]
+  cart      Cart?
+
+  transactionsAsCustomer Transaction[]     @relation("CustomerTransactions")
+  transactionsAsAdmin    Transaction[]     @relation("AdminTransactions")
+  referralsMade          ReferralHistory[] @relation("Referrer")
+  referralsReceived      ReferralHistory[] @relation("Referred")
+
+  @@map("user")
 }
 
-model RefreshToken {
-  id          String    @id @default(uuid())
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId      String    @map("user_id") 
-  hashedToken String    @unique @map("hashed_token")
-  usedAt      DateTime? @map("used_at")
-  expiresAt   DateTime  @map("expires_at")
-  revokedAt   DateTime? @map("revoked_at")
-  createdAt   DateTime  @default(now()) @map("created_at")
+model UserAddress {
+  id        String    @id @default(uuid())
+  name      String
+  userId    String
+  longitude String
+  latitude  String
+  notes     String?
+  isDefault Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
-  @@map("refresh_tokens")
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("user_address")
 }
 
-model PasswordResetToken {
-  id        String    @id @default(uuid()) 
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String    @map("user_id") 
-  tokenHash String    @unique @map("token_hash")
-  expiresAt DateTime  @map("expires_at")
-  usedAt    DateTime? @map("used_at")
-  createdAt DateTime  @default(now()) @map("created_at")
+model RegisterToken {
+  id        String    @id @default(uuid())
+  token     String
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
-  @@map("password_reset_tokens")
+  @@map("register_token")
+}
+
+model ForgotPassword {
+  id        String    @id @default(uuid())
+  token     String
+  email     String
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@map("forgot_password")
+}
+
+model Category {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  products Product[]
+
+  @@map("category")
+}
+
+model Product {
+  id         String    @id @default(uuid())
+  name       String    @unique
+  slug       String?   @unique
+  categoryId String
+  sku        String    @unique
+  price      Int
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+
+  category         Category         @relation(fields: [categoryId], references: [id])
+  images           ProductImage[]
+  stocks           ProductStock[]
+  stockHistories   StockHistory[]
+  transactionItems TransactionItem[]
+  discounts        Discount[]
+  cartItems        CartItem[]
+
+  @@map("product")
+}
+
+model ProductImage {
+  id        String    @id @default(uuid())
+  productId String
+  image     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  product Product @relation(fields: [productId], references: [id])
+
+  @@map("product_image")
+}
+
+model ProductStock {
+  id        String    @id @default(uuid())
+  productId String
+  storeId   String
+  stock     Int       @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  product Product @relation(fields: [productId], references: [id])
+  store   Store   @relation(fields: [storeId], references: [id])
+
+  @@unique([productId, storeId])
+  @@map("product_stock")
+}
+
+model StockHistory {
+  id        String        @id @default(uuid())
+  productId String
+  storeId   String
+  type      StockMovement
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  deletedAt DateTime?
+
+  product Product @relation(fields: [productId], references: [id])
+  store   Store   @relation(fields: [storeId], references: [id])
+
+  @@map("stock_history")
+}
+
+model Discount {
+  id          String       @id @default(uuid())
+  name        String
+  type        DiscountType
+  buyQuantity Int?
+  getQuantity Int?
+  value       Int?
+  productId   String
+  startDate   DateTime
+  endDate     DateTime
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  deletedAt   DateTime?
+
+  product           Product           @relation(fields: [productId], references: [id])
+  transactionItems  TransactionItem[]
+  discountHistories DiscountHistory[]
+
+  @@map("discount")
+}
+
+model Voucher {
+  id                 String              @id @default(uuid())
+  name               String
+  code               String              @unique
+  quantity           Int
+  minimumTransaction Int?
+  maxDiscount        Int?
+  discountType       VoucherDiscountType
+  voucherType        VoucherType
+  value              Int
+  startDate          DateTime
+  endDate            DateTime
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  deletedAt          DateTime?
+
+  transactionsAsVoucher         Transaction[]    @relation("TransactionVoucher")
+  transactionsAsDeliveryVoucher Transaction[]    @relation("DeliveryVoucher")
+  voucherHistories              VoucherHistory[] @relation("VoucherHistoryTransaction")
+  deliveryVoucherHistories      VoucherHistory[] @relation("VoucherHistoryDelivery")
+
+  @@map("voucher")
+}
+
+model Transaction {
+  id                 String            @id @default(uuid())
+  customerId         String
+  adminId            String?
+  storeId            String
+  deliveryFee        Int
+  shipping_vendor    String
+  totalPrice         Int
+  voucherId          String?
+  deliveryVoucherId  String?
+  snapToken          String?
+  paymentType        String?
+  midtransStatus     String?
+  paymentExpiredAt   DateTime?
+  paidAt             DateTime?
+  transactionStatus  TransactionStatus @default(waitingPayment)
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  deletedAt          DateTime?
+
+  customer        User             @relation("CustomerTransactions", fields: [customerId], references: [id])
+  admin           User?            @relation("AdminTransactions", fields: [adminId], references: [id])
+  store           Store            @relation(fields: [storeId], references: [id])
+  voucher         Voucher?         @relation("TransactionVoucher", fields: [voucherId], references: [id])
+  deliveryVoucher Voucher?         @relation("DeliveryVoucher", fields: [deliveryVoucherId], references: [id])
+
+  items             TransactionItem[]
+  voucherHistories  VoucherHistory[]
+  discountHistories DiscountHistory[]
+
+  @@map("transaction")
+}
+
+model TransactionItem {
+  id            String    @id @default(uuid())
+  productId     String
+  quantity      Int
+  totalPrice    Int
+  transactionId String
+  discountId    String?
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  product     Product     @relation(fields: [productId], references: [id])
+  transaction Transaction @relation(fields: [transactionId], references: [id])
+  discount    Discount?   @relation(fields: [discountId], references: [id])
+
+  @@map("transaction_item")
+}
+
+model VoucherHistory {
+  id                String    @id @default(uuid())
+  deliveryVoucherId String?
+  voucherId         String?
+  transactionId     String
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  deletedAt         DateTime?
+
+  deliveryVoucher Voucher?    @relation("VoucherHistoryDelivery", fields: [deliveryVoucherId], references: [id])
+  voucher         Voucher?    @relation("VoucherHistoryTransaction", fields: [voucherId], references: [id])
+  transaction     Transaction @relation(fields: [transactionId], references: [id])
+
+  @@map("voucher_history")
+}
+
+model DiscountHistory {
+  id            String    @id @default(uuid())
+  transactionId String?
+  discountId    String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  transaction Transaction? @relation(fields: [transactionId], references: [id])
+  discount    Discount?    @relation(fields: [discountId], references: [id])
+
+  @@map("discount_history")
+}
+
+model ReferralHistory {
+  id         String    @id @default(uuid())
+  referrerId String
+  referredId String    @unique
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+
+  referrer User @relation("Referrer", fields: [referrerId], references: [id])
+  referred User @relation("Referred", fields: [referredId], references: [id])
+
+  @@unique([referrerId, referredId])
+  @@map("referral_history")
+}
+
+model Cart {
+  id        String    @id @default(uuid())
+  userId    String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  user  User       @relation(fields: [userId], references: [id])
+  items CartItem[]
+
+  @@map("cart")
+}
+
+model CartItem {
+  id        String    @id @default(uuid())
+  productId String
+  cartId    String
+  quantity  Int
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  product Product @relation(fields: [productId], references: [id])
+  cart    Cart    @relation(fields: [cartId], references: [id])
+
+  @@unique([cartId, productId])
+  @@map("cart_item")
 }
