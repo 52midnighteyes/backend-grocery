@@ -1,31 +1,6 @@
 import dotenv from "dotenv";
+import { getRequiredEnv, getNumberEnv } from "./config.helper.js";
 dotenv.config();
-
-const getRequiredEnv = (name: string): string => {
-  const value = process.env[name];
-
-  if (!value || value.trim() === "") {
-    throw new Error(`Missing env: ${name}`);
-  }
-
-  return value;
-};
-
-const getNumberEnv = (name: string, fallback: number): number => {
-  const value = process.env[name];
-
-  if (!value || value.trim() === "") {
-    return fallback;
-  }
-
-  const parsed = Number(value);
-
-  if (Number.isNaN(parsed)) {
-    throw new Error(`Invalid number env: ${name}`);
-  }
-
-  return parsed;
-};
 
 export const PORT = getNumberEnv("PORT", 8080);
 export const JWT_SECRET = getRequiredEnv("JWT_SECRET");
