@@ -1,5 +1,6 @@
 import * as z from "zod";
-import { UserRole } from "../../../generated/prisma/enums.js";
+
+const UserRole = ["dummy", "dummy"];
 
 export const jwtTokenSchema = z.object({
   id: z.uuid({ error: "User ID from token is invalid" }),
