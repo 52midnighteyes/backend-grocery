@@ -60,9 +60,9 @@ model Store {
   latitude  Decimal?
   longitude Decimal?
   address   String?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
   productStocks  ProductStock[]
   stockHistories StockHistory[]
@@ -74,27 +74,60 @@ model Store {
 model Role {
   id        String    @id @default(uuid())
   name      String    @unique
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
   users User[]
+  rolePermissions RolePermission[]
 
   @@map("role")
 }
 
+
+model Permission {
+  id String @id @default(uuid())
+  name String @unique
+  description String
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  rolePermissions RolePermission[]
+
+
+  @@map("permission")
+
+}
+
+model RolePermission {
+  id           String    @id @default(uuid())
+  roleId       String    @map("role_id")
+  permissionId String    @map("permission_id")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+
+  role       Role       @relation(fields: [roleId], references: [id])
+  permission Permission @relation(fields: [permissionId], references: [id])
+
+  @@unique([roleId, permissionId])
+  @@map("role_permission")
+}
+
+
 model User {
   id           String    @id @default(uuid())
   name         String
-  roleId       String
+  roleId       String @map("role_id")
   email        String    @unique
   password     String
   avatar       String?
-  isVerified   Boolean   @default(false)
-  referralCode String?   @unique
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  deletedAt    DateTime?
+  isVerified   Boolean   @default(false) @map("is_verified")
+  referralCode String?   @unique @map("referral_code")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
 
   role      Role          @relation(fields: [roleId], references: [id])
   addresses UserAddress[]
@@ -111,14 +144,14 @@ model User {
 model UserAddress {
   id        String    @id @default(uuid())
   name      String
-  userId    String
+  userId    String @map("user_id")
   longitude String
   latitude  String
   notes     String?
-  isDefault Boolean   @default(false)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  isDefault Boolean   @default(false) @map("is_default")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
   user User @relation(fields: [userId], references: [id])
 
@@ -128,10 +161,10 @@ model UserAddress {
 model RegisterToken {
   id        String    @id @default(uuid())
   token     String
-  expiresAt DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  expiresAt DateTime? @map("expires_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
   @@map("register_token")
 }
@@ -140,10 +173,10 @@ model ForgotPassword {
   id        String    @id @default(uuid())
   token     String
   email     String
-  expiresAt DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  expiresAt DateTime? @map("expires_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
   @@map("forgot_password")
 }
@@ -151,9 +184,9 @@ model ForgotPassword {
 model Category {
   id        String    @id @default(uuid())
   name      String    @unique
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
   products Product[]
 
@@ -164,12 +197,12 @@ model Product {
   id         String    @id @default(uuid())
   name       String    @unique
   slug       String?   @unique
-  categoryId String
+  categoryId String @map("category_id")
   sku        String    @unique
   price      Int
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  deletedAt  DateTime?
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  deletedAt  DateTime? @map("deleted_at")
 
   category         Category         @relation(fields: [categoryId], references: [id])
   images           ProductImage[]
@@ -184,11 +217,11 @@ model Product {
 
 model ProductImage {
   id        String    @id @default(uuid())
-  productId String
+  productId String @map("product_id")
   image     String?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
   product Product @relation(fields: [productId], references: [id])
 
@@ -197,12 +230,12 @@ model ProductImage {
 
 model ProductStock {
   id        String    @id @default(uuid())
-  productId String
-  storeId   String
+  productId String @map("product_id")
+  storeId   String @map("store_id")
   stock     Int       @default(0)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
   product Product @relation(fields: [productId], references: [id])
   store   Store   @relation(fields: [storeId], references: [id])
@@ -213,12 +246,12 @@ model ProductStock {
 
 model StockHistory {
   id        String        @id @default(uuid())
-  productId String
-  storeId   String
+  productId String @map("product_id")
+  storeId   String @map("store_id")
   type      StockMovement
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
-  deletedAt DateTime?
+  createdAt DateTime      @default(now()) @map("created_at")
+  updatedAt DateTime      @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
   product Product @relation(fields: [productId], references: [id])
   store   Store   @relation(fields: [storeId], references: [id])
@@ -230,15 +263,15 @@ model Discount {
   id          String       @id @default(uuid())
   name        String
   type        DiscountType
-  buyQuantity Int?
-  getQuantity Int?
+  buyQuantity Int? @map("buy_quantity")
+  getQuantity Int? @map("get_quantity")
   value       Int?
-  productId   String
-  startDate   DateTime
-  endDate     DateTime
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  deletedAt   DateTime?
+  productId   String @map("product_id")
+  startDate   DateTime @map("start_date")
+  endDate     DateTime @map("end_date")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
 
   product           Product           @relation(fields: [productId], references: [id])
   transactionItems  TransactionItem[]
@@ -252,16 +285,16 @@ model Voucher {
   name               String
   code               String              @unique
   quantity           Int
-  minimumTransaction Int?
-  maxDiscount        Int?
-  discountType       VoucherDiscountType
-  voucherType        VoucherType
+  minimumTransaction Int? @map("minimum_transaction")
+  maxDiscount        Int? @map("max_discount")
+  discountType       VoucherDiscountType @map("discount_type")
+  voucherType        VoucherType @map("voucher_type")
   value              Int
-  startDate          DateTime
-  endDate            DateTime
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
-  deletedAt          DateTime?
+  startDate          DateTime @map("start_date")
+  endDate            DateTime @map("end_date")
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @updatedAt @map("updated_at")
+  deletedAt          DateTime? @map("deleted_at")
 
   transactionsAsVoucher         Transaction[]    @relation("TransactionVoucher")
   transactionsAsDeliveryVoucher Transaction[]    @relation("DeliveryVoucher")
@@ -273,23 +306,23 @@ model Voucher {
 
 model Transaction {
   id                 String            @id @default(uuid())
-  customerId         String
-  adminId            String?
-  storeId            String
-  deliveryFee        Int
+  customerId         String @map("customer_id")
+  adminId            String? @map("admin_id")
+  storeId            String @map("store_id")
+  deliveryFee        Int @map("delivery_fee")
   shipping_vendor    String
-  totalPrice         Int
-  voucherId          String?
-  deliveryVoucherId  String?
-  snapToken          String?
-  paymentType        String?
-  midtransStatus     String?
-  paymentExpiredAt   DateTime?
-  paidAt             DateTime?
-  transactionStatus  TransactionStatus @default(waitingPayment)
-  createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @updatedAt
-  deletedAt          DateTime?
+  totalPrice         Int @map("total_price")
+  voucherId          String? @map("voucher_id")
+  deliveryVoucherId  String? @map("delivery_voucher_id")
+  snapToken          String? @map("snap_token")
+  paymentType        String? @map("payment_type")
+  midtransStatus     String? @map("midtrans_status")
+  paymentExpiredAt   DateTime? @map("payment_expired_at")
+  paidAt             DateTime? @map("paid_at")
+  transactionStatus  TransactionStatus @default(waitingPayment) @map("transaction_status")
+  createdAt          DateTime          @default(now()) @map("created_at")
+  updatedAt          DateTime          @updatedAt @map("updated_at")
+  deletedAt          DateTime? @map("deleted_at")
 
   customer        User             @relation("CustomerTransactions", fields: [customerId], references: [id])
   admin           User?            @relation("AdminTransactions", fields: [adminId], references: [id])
@@ -306,15 +339,15 @@ model Transaction {
 
 model TransactionItem {
   id            String    @id @default(uuid())
-  productId     String
+  productId     String @map("product_id")
   quantity      Int
-  totalPrice    Int
-  transactionId String
-  discountId    String?
+  totalPrice    Int @map("total_price")
+  transactionId String @map("transaction_id")
+  discountId    String? @map("discount_id")
   notes         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  deletedAt     DateTime?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
 
   product     Product     @relation(fields: [productId], references: [id])
   transaction Transaction @relation(fields: [transactionId], references: [id])
@@ -325,12 +358,12 @@ model TransactionItem {
 
 model VoucherHistory {
   id                String    @id @default(uuid())
-  deliveryVoucherId String?
-  voucherId         String?
-  transactionId     String
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  deletedAt         DateTime?
+  deliveryVoucherId String? @map("delivery_voucher_id")
+  voucherId         String? @map("voucher_id")
+  transactionId     String @map("transaction_id")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  deletedAt         DateTime? @map("deleted_at")
 
   deliveryVoucher Voucher?    @relation("VoucherHistoryDelivery", fields: [deliveryVoucherId], references: [id])
   voucher         Voucher?    @relation("VoucherHistoryTransaction", fields: [voucherId], references: [id])
@@ -341,11 +374,11 @@ model VoucherHistory {
 
 model DiscountHistory {
   id            String    @id @default(uuid())
-  transactionId String?
-  discountId    String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  deletedAt     DateTime?
+  transactionId String? @map("transaction_id")
+  discountId    String? @map("discount_id")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
 
   transaction Transaction? @relation(fields: [transactionId], references: [id])
   discount    Discount?    @relation(fields: [discountId], references: [id])
@@ -355,11 +388,11 @@ model DiscountHistory {
 
 model ReferralHistory {
   id         String    @id @default(uuid())
-  referrerId String
-  referredId String    @unique
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  deletedAt  DateTime?
+  referrerId String @map("referrer_id")
+  referredId String    @unique @map("referred_id")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  deletedAt  DateTime? @map("deleted_at")
 
   referrer User @relation("Referrer", fields: [referrerId], references: [id])
   referred User @relation("Referred", fields: [referredId], references: [id])
@@ -370,10 +403,10 @@ model ReferralHistory {
 
 model Cart {
   id        String    @id @default(uuid())
-  userId    String    @unique
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  userId    String    @unique @map("user_id")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
   user  User       @relation(fields: [userId], references: [id])
   items CartItem[]
@@ -383,12 +416,12 @@ model Cart {
 
 model CartItem {
   id        String    @id @default(uuid())
-  productId String
-  cartId    String
+  productId String @map("product_id")
+  cartId    String @map("cart_id")
   quantity  Int
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
   product Product @relation(fields: [productId], references: [id])
   cart    Cart    @relation(fields: [cartId], references: [id])
