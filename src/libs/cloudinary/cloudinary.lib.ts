@@ -1,4 +1,8 @@
-import { v2 as cloudinary, type UploadApiResponse } from "cloudinary";
+import {
+  v2 as cloudinary,
+  UploadApiOptions,
+  type UploadApiResponse,
+} from "cloudinary";
 import { Readable } from "node:stream";
 import { AppError } from "../../class/appError.js";
 import {
@@ -13,18 +17,63 @@ cloudinary.config({
   api_secret: CLOUDINARY_API_SECRET,
 });
 
-const BASE_PARENT_FOLDER = "TICKETING-APP";
+const BASE_PARENT_FOLDER = "GROCERGO";
+type TPicture = "PRODUCT" | "AVATAR";
+const ALLOWED_IMAGE_FORMATS = ["jpg", "png", "gif"];
 
-export const uploadToCloudinary = (
+export const cloudinaryUpload = (
   file: Express.Multer.File,
   id: string,
-  type: "AVATAR" | "TRANSACTION_PROOF" | "EVENT_BANNER",
+  type: TPicture,
+  productName?: string,
 ): Promise<UploadApiResponse> => {
   return new Promise((resolve, reject) => {
-    const folder = `${BASE_PARENT_FOLDER}/${id}/${type}`;
+    if (type === "PRODUCT" && !productName) {
+      return reject(
+        new AppError(400, "Product name is required for product images"),
+      );
+    }
+    const folder =
+      type === "AVATAR"
+        ? `${BASE_PARENT_FOLDER}/USERS/${id}/AVATARS`
+        : `${BASE_PARENT_FOLDER}/PRODUCTS/${productName}`;
+
+    let uploadOptions: UploadApiOptions;
+
+    switch (type) {
+      case "AVATAR":
+        uploadOptions = {
+          folder,
+          public_id: `AVATAR-${id}`,
+          filename_override: `AVATAR-${id}`,
+          overwrite: true,
+          invalidate: true,
+          resource_type: "image",
+          allowed_formats: ALLOWED_IMAGE_FORMATS,
+        };
+        break;
+
+      case "PRODUCT":
+        uploadOptions = {
+          folder,
+          public_id: `${productName}-${Date.now()}`,
+          overwrite: false,
+          filename_override: `${productName}-${Date.now()}`,
+          resource_type: "image",
+          allowed_formats: ALLOWED_IMAGE_FORMATS,
+        };
+        break;
+
+      default:
+        uploadOptions = {
+          folder,
+          resource_type: "image",
+          allowed_formats: ALLOWED_IMAGE_FORMATS,
+        };
+    }
 
     const stream = cloudinary.uploader.upload_stream(
-      { folder },
+      uploadOptions,
       (error, result) => {
         if (error || !result) {
           return reject(
@@ -40,30 +89,15 @@ export const uploadToCloudinary = (
   });
 };
 
-export const deleteFromCloudinary = async (publicId: string) => {
-  const action: UploadApiResponse = await cloudinary.uploader.destroy(publicId);
+export const cloudinaryDelete = async (publicId: string) => {
+  const action = await cloudinary.uploader.destroy(publicId, {
+    resource_type: "image",
+    invalidate: true,
+  });
 
   if (action.result !== "ok") {
     throw new AppError(500, "Failed to delete image from Cloudinary", false);
   }
 
-  console.log(
-    "Image deleted successfully from Cloudinary",
-    action.original_filename,
-  );
-};
-
-export const getPublicIdFromCloudinaryUrl = (url: string) => {
-  const uploadSegment = "/upload/";
-  const uploadIndex = url.indexOf(uploadSegment);
-
-  if (uploadIndex === -1) return null;
-
-  const pathAfterUpload = url.slice(uploadIndex + uploadSegment.length);
-  const versionlessPath = pathAfterUpload.replace(/^v\d+\//, "");
-  const lastDotIndex = versionlessPath.lastIndexOf(".");
-
-  if (lastDotIndex === -1) return null;
-
-  return versionlessPath.slice(0, lastDotIndex);
+  console.log("Image deleted successfully from Cloudinary", publicId);
 };
