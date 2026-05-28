@@ -20,32 +20,39 @@ cloudinary.config({
 const BASE_PARENT_FOLDER = "GROCERGO";
 type TPicture = "PRODUCT" | "AVATAR";
 const ALLOWED_IMAGE_FORMATS = ["jpg", "png", "gif"];
+type TCloudinaryUpload = {
+  file: Express.Multer.File;
+  userid?: string;
+  type: TPicture;
+  productName?: string;
+};
 
 export const cloudinaryUpload = (
-  file: Express.Multer.File,
-  id: string,
-  type: TPicture,
-  productName?: string,
+  params: TCloudinaryUpload
 ): Promise<UploadApiResponse> => {
   return new Promise((resolve, reject) => {
-    if (type === "PRODUCT" && !productName) {
+    if (params.type === "PRODUCT" && !params.productName) {
       return reject(
-        new AppError(400, "Product name is required for product images"),
+        new AppError(400, "Product name is required for product images")
       );
     }
+
+    if (params.type === "AVATAR" && !params.userid) {
+      return reject(new AppError(400, "userId is required for avatar images"));
+    }
     const folder =
-      type === "AVATAR"
-        ? `${BASE_PARENT_FOLDER}/USERS/${id}/AVATARS`
-        : `${BASE_PARENT_FOLDER}/PRODUCTS/${productName}`;
+      params.type === "AVATAR"
+        ? `${BASE_PARENT_FOLDER}/USERS/${params.userid}/AVATARS`
+        : `${BASE_PARENT_FOLDER}/PRODUCTS/${params.productName}`;
 
     let uploadOptions: UploadApiOptions;
 
-    switch (type) {
+    switch (params.type) {
       case "AVATAR":
         uploadOptions = {
           folder,
-          public_id: `AVATAR-${id}`,
-          filename_override: `AVATAR-${id}`,
+          public_id: `AVATAR-${params.userid}`,
+          filename_override: `AVATAR-${params.userid}`,
           overwrite: true,
           invalidate: true,
           resource_type: "image",
@@ -56,9 +63,9 @@ export const cloudinaryUpload = (
       case "PRODUCT":
         uploadOptions = {
           folder,
-          public_id: `${productName}-${Date.now()}`,
+          public_id: `${params.productName}-${Date.now()}`,
           overwrite: false,
-          filename_override: `${productName}-${Date.now()}`,
+          filename_override: `${params.productName}-${Date.now()}`,
           resource_type: "image",
           allowed_formats: ALLOWED_IMAGE_FORMATS,
         };
@@ -77,15 +84,15 @@ export const cloudinaryUpload = (
       (error, result) => {
         if (error || !result) {
           return reject(
-            new AppError(500, "Failed to upload image to Cloudinary", false),
+            new AppError(500, "Failed to upload image to Cloudinary", false)
           );
         }
 
         resolve(result);
-      },
+      }
     );
 
-    Readable.from([file.buffer]).pipe(stream);
+    Readable.from([params.file.buffer]).pipe(stream);
   });
 };
 
