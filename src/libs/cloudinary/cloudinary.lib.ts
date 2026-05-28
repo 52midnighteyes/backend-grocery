@@ -25,12 +25,12 @@ export const cloudinaryUpload = (
   file: Express.Multer.File,
   id: string,
   type: TPicture,
-  productName?: string,
+  productName?: string
 ): Promise<UploadApiResponse> => {
   return new Promise((resolve, reject) => {
     if (type === "PRODUCT" && !productName) {
       return reject(
-        new AppError(400, "Product name is required for product images"),
+        new AppError(400, "Product name is required for product images")
       );
     }
     const folder =
@@ -77,12 +77,12 @@ export const cloudinaryUpload = (
       (error, result) => {
         if (error || !result) {
           return reject(
-            new AppError(500, "Failed to upload image to Cloudinary", false),
+            new AppError(500, "Failed to upload image to Cloudinary", false)
           );
         }
 
         resolve(result);
-      },
+      }
     );
 
     Readable.from([file.buffer]).pipe(stream);
