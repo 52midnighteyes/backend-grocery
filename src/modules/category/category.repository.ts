@@ -8,3 +8,11 @@ export const findCategoryById = async (id: string, db: TPrisma = prisma) => {
     },
   });
 };
+
+export const findManyCategories = async (db: TPrisma = prisma) => {
+  return db.category.findMany({
+    orderBy: {
+      name: "asc",
+    },
+  });
+};

@@ -33,10 +33,21 @@ class ErrorHandler {
     }
 
     if (err instanceof Prisma.PrismaClientKnownRequestError) {
+      console.error("Prisma known request error:", {
+        code: err.code,
+        meta: err.meta,
+        message: err.message,
+      });
+
       switch (err.code) {
         case "P2002":
           return res.status(409).json({
             message: "Already exists",
+          });
+
+        case "P2003":
+          return res.status(400).json({
+            message: "Invalid relation id",
           });
 
         case "P2025":
