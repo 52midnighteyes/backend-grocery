@@ -22,28 +22,18 @@ type TPicture = "PRODUCT" | "AVATAR";
 const ALLOWED_IMAGE_FORMATS = ["jpg", "png", "gif"];
 type TCloudinaryUpload = {
   file: Express.Multer.File;
-  userid?: string;
+  id: string;
   type: TPicture;
-  productName?: string;
 };
 
 export const cloudinaryUpload = (
   params: TCloudinaryUpload
 ): Promise<UploadApiResponse> => {
   return new Promise((resolve, reject) => {
-    if (params.type === "PRODUCT" && !params.productName) {
-      return reject(
-        new AppError(400, "Product name is required for product images")
-      );
-    }
-
-    if (params.type === "AVATAR" && !params.userid) {
-      return reject(new AppError(400, "userId is required for avatar images"));
-    }
     const folder =
       params.type === "AVATAR"
-        ? `${BASE_PARENT_FOLDER}/USERS/${params.userid}/AVATARS`
-        : `${BASE_PARENT_FOLDER}/PRODUCTS/${params.productName}`;
+        ? `${BASE_PARENT_FOLDER}/USERS/${params.id}/AVATARS`
+        : `${BASE_PARENT_FOLDER}/PRODUCTS/${params.id}`;
 
     let uploadOptions: UploadApiOptions;
 
@@ -51,8 +41,8 @@ export const cloudinaryUpload = (
       case "AVATAR":
         uploadOptions = {
           folder,
-          public_id: `AVATAR-${params.userid}`,
-          filename_override: `AVATAR-${params.userid}`,
+          public_id: `AVATAR-${params.id}`,
+          filename_override: `AVATAR-${params.id}`,
           overwrite: true,
           invalidate: true,
           resource_type: "image",
@@ -63,9 +53,9 @@ export const cloudinaryUpload = (
       case "PRODUCT":
         uploadOptions = {
           folder,
-          public_id: `${params.productName}-${Date.now()}`,
+          public_id: `${params.id}-${Date.now()}`,
           overwrite: false,
-          filename_override: `${params.productName}-${Date.now()}`,
+          filename_override: `${params.id}-${Date.now()}`,
           resource_type: "image",
           allowed_formats: ALLOWED_IMAGE_FORMATS,
         };
