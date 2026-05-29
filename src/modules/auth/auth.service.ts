@@ -193,3 +193,14 @@ export const verifyEmailChangeService = async (token: string) => {
     await updateUser(payload.id, { isVerified: true });
     await invalidateRegisterToken(record.id);
 };
+
+export const changePasswordService = async (userId: string, oldPassword: string, newPassword: string) => {
+    const user = await findUserById(userId);
+    if (!user || !user.password) throw new AppError(404, "User tidak ditemukan");
+
+    const isMatch = await argon2.verify(user.password, oldPassword);
+    if (!isMatch) throw new AppError(401, "Password lama tidak sesuai");
+
+    const hashedPassword = await argon2.hash(newPassword);
+    await updateUser(userId, { password: hashedPassword });
+};

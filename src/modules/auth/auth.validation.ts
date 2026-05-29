@@ -54,3 +54,12 @@ export const updateProfileBodySchema = z.object({
 export const changeEmailBodySchema = z.object({
     email: z.email("Format email tidak valid"),
 });
+
+export const changePasswordBodySchema = z.object({
+    oldPassword: z.string().min(1, "Password lama wajib diisi"),
+    newPassword: passwordSchema,
+    confirmPassword: z.string(),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Password tidak cocok",
+    path: ["confirmPassword"],
+});

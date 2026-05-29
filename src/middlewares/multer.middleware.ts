@@ -9,13 +9,13 @@ export const upload = multer({
     fileSize: 5 * 1024 * 1024,
   },
   fileFilter: (_req, file, cb) => {
-    const allowedMimeTypes = ["image/jpeg", "image/png", "image/webp"];
+    const allowedMimeTypes = ["image/jpeg", "image/png", "image/gif"];
 
     if (!allowedMimeTypes.includes(file.mimetype)) {
       return cb(
         new AppError(
           400,
-          "Invalid file type. Only JPG, PNG, and WEBP are allowed."
+          "Invalid file type. Only JPG, PNG, and GIF are allowed."
         )
       );
     }

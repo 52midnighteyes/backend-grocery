@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
-import { uploadToCloudinary } from "../../libs/cloudinary/cloudinary.lib.js";
+import { cloudinaryUpload } from "../../libs/cloudinary/cloudinary.lib.js";
 import { setAuthCookies } from "./auth.helper.js";
 import {
     registerService,
@@ -13,6 +13,7 @@ import {
     getProfileService,
     updateProfileService,
     changeEmailService,
+    changePasswordService,
 } from "./auth.service.js";
 
 export const register = async (req: Request, res: Response, next: NextFunction) => {
@@ -93,7 +94,7 @@ export const updateProfile = async (req: Request, res: Response, next: NextFunct
         const { name } = req.body;
         let avatarUrl: string | undefined;
         if (req.file) {
-            const result = await uploadToCloudinary(req.file, req.user!.id, "AVATAR");
+            const result = await cloudinaryUpload({ file: req.file, id: req.user!.id, type: "AVATAR" });
             avatarUrl = result.secure_url;
         }
         await updateProfileService(req.user!.id, name, avatarUrl);
@@ -106,5 +107,13 @@ export const changeEmail = async (req: Request, res: Response, next: NextFunctio
         const { email } = req.body;
         await changeEmailService(req.user!.id, email);
         res.status(200).json({ message: "Email diperbarui, cek email baru untuk verifikasi" });
+    } catch (error) { next(error); }
+};
+
+export const changePassword = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { oldPassword, newPassword } = req.body;
+        await changePasswordService(req.user!.id, oldPassword, newPassword);
+        res.status(200).json({ message: "Password berhasil diperbarui" });
     } catch (error) { next(error); }
 };

@@ -1,15 +1,28 @@
 import nodemailer from "nodemailer";
-import { MAILTRAP_USER, MAILTRAP_PASS } from "../../config/config.js";
+import { MailtrapClient, MailtrapTransport } from "mailtrap";
+import { MAILTRAP_TOKEN } from "../../config/config.js";
 
-const transport = nodemailer.createTransport({
-  host: "sandbox.smtp.mailtrap.io",
-  port: 2525,
-  auth: {
-    user: MAILTRAP_USER,
-    pass: MAILTRAP_PASS,
-  },
-});
+type TEmailCategory = "EMAIL_VERIFICATION" | "INVOICE" | "TEST_MAILTRAP";
 
-export const sendMail = async (to: string, subject: string, html: string): Promise<void> => {
-  await transport.sendMail({ to, subject, html });
+const transporter = nodemailer.createTransport(
+  MailtrapTransport({ token: MAILTRAP_TOKEN })
+);
+
+const sender = {
+  address: "grocergo@alwistudio.com",
+  name: "grocergo",
+};
+export const sendMail = async (
+  to: string,
+  subject: string,
+  html: string,
+  category: TEmailCategory
+): Promise<void> => {
+  transporter.sendMail({
+    from: sender,
+    to,
+    subject,
+    html,
+    category,
+  });
 };

@@ -12,6 +12,7 @@ import {
     resetPasswordQuerySchema,
     updateProfileBodySchema,
     changeEmailBodySchema,
+    changePasswordBodySchema,
 } from "./auth.validation.js";
 import {
     register,
@@ -25,13 +26,14 @@ import {
     getProfile,
     updateProfile,
     changeEmail,
+    changePassword,
 } from "./auth.controller.js";
 
 const router = Router();
 
 router.post("/register", validateSchema(registerBodySchema, "body"), register);
-router.post("/verify", validateSchema(verifyEmailQuerySchema, "query"), validateSchema(verifyEmailBodySchema, "body"), verifyEmail);
-router.get("/verify-email-change", validateSchema(verifyEmailQuerySchema, "query"), verifyEmailChange);
+router.post("/verification", validateSchema(verifyEmailQuerySchema, "query"), validateSchema(verifyEmailBodySchema, "body"), verifyEmail);
+router.patch("/verification", validateSchema(verifyEmailQuerySchema, "query"), verifyEmailChange);
 router.post("/resend-verification", validateSchema(forgotPasswordBodySchema, "body"), resendVerification);
 router.post("/login", validateSchema(loginBodySchema, "body"), login);
 router.post("/logout", verifyAccessToken, logout);
@@ -40,5 +42,6 @@ router.post("/reset-password", validateSchema(resetPasswordQuerySchema, "query")
 router.get("/me", verifyAccessToken, getProfile);
 router.patch("/profile", verifyAccessToken, uploadAvatar.single("avatar"), validateSchema(updateProfileBodySchema, "body"), updateProfile);
 router.patch("/email", verifyAccessToken, validateSchema(changeEmailBodySchema, "body"), changeEmail);
+router.patch("/password", verifyAccessToken, validateSchema(changePasswordBodySchema, "body"), changePassword);
 
 export default router;
