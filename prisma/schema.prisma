@@ -206,6 +206,10 @@ model Product {
   name       String    @unique
   slug       String?   @unique
   categoryId String @map("category_id")
+  brand     String?
+  variant   String?
+  size      String?
+  description String?
   sku        String    @unique
   price      Int
   createdAt  DateTime  @default(now()) @map("created_at")
@@ -227,6 +231,8 @@ model ProductImage {
   id        String    @id @default(uuid())
   productId String @map("product_id")
   image     String?
+  publicId String? @map("public_id")
+  position Int
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
