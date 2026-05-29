@@ -33,7 +33,7 @@ const sendVerificationEmail = async (userId:string, name:string, email:string) =
 
     await createRegisterToken(token, expiresAt);
 
-    const verifyUrl = `${FRONTEND_URL}/auth/verify?token=${token}`
+    const verifyUrl = `${FRONTEND_URL}/verification?token=${token}`
     const html = await compileHandlebars(EMAIL_TEMPLATES_DIR, "register.mail.hbs", {
         name,
         url: verifyUrl,
@@ -126,7 +126,7 @@ export const forgotPasswordService = async (email: string) => {
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
     await createForgotPasswordToken(token, email, expiresAt);
 
-    const resetUrl = `${FRONTEND_URL}/auth/reset-password?token=${token}`;
+    const resetUrl = `${FRONTEND_URL}/reset-password?token=${token}`;
     const html = await compileHandlebars(EMAIL_TEMPLATES_DIR, "request-forgot-password.mail.hbs", {
         name: user.name,
         url: resetUrl,
