@@ -84,7 +84,7 @@ export const verifyEmailService = async (token:string, password:string) => {
         isVerified: true,
         referralCode: newReferralCode
     });
-    
+
     await invalidateRegisterToken(record.id)
 }
 
@@ -212,3 +212,18 @@ export const changePasswordService = async (userId: string, oldPassword: string,
     const hashedPassword = await argon2.hash(newPassword);
     await updateUser(userId, { password: hashedPassword });
 };
+
+export const refreshTokenService = async (userId: string): Promise<TJwtTokenPayload> => {
+    const user = await findUserById(userId);
+    if (!user) throw new AppError(401, "Unauthorized");
+
+    return {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role.name as "superAdmin" | "storeAdmin" | "user",
+        avatarUrl: user.avatar,
+        isVerified: user.isVerified,
+    };
+};
+

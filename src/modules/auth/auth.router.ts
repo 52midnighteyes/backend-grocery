@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { validateSchema } from "../../middlewares/zodValidator.middleware.js";
-import { verifyAccessToken } from "../../middlewares/tokenVerification/tokenVerification.middleware.js";
+import { verifyAccessToken, verifyRefreshToken } from "../../middlewares/tokenVerification/tokenVerification.middleware.js";
 import { uploadAvatar } from "../../middlewares/multer.middleware.js";
 import {
     registerBodySchema,
@@ -27,6 +27,7 @@ import {
     updateProfile,
     changeEmail,
     changePassword,
+    refreshToken,
 } from "./auth.controller.js";
 
 const router = Router();
@@ -43,5 +44,6 @@ router.get("/me", verifyAccessToken, getProfile);
 router.patch("/profile", verifyAccessToken, uploadAvatar.single("avatar"), validateSchema(updateProfileBodySchema, "body"), updateProfile);
 router.patch("/email", verifyAccessToken, validateSchema(changeEmailBodySchema, "body"), changeEmail);
 router.patch("/password", verifyAccessToken, validateSchema(changePasswordBodySchema, "body"), changePassword);
+router.post("/refresh", verifyRefreshToken, refreshToken);
 
 export default router;
