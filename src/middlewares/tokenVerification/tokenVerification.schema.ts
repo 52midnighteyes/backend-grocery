@@ -1,12 +1,11 @@
 import * as z from "zod";
 
-const UserRole = ["dummy", "dummy"];
+const UserRole = ["superAdmin", "storeAdmin", "user"] as const;
 
 export const jwtTokenSchema = z.object({
   id: z.uuid({ error: "User ID from token is invalid" }),
   email: z.email({ error: "Email from token is invalid" }),
-  firstName: z.string().nonempty("First name is required").trim(),
-  lastName: z.string().nonempty("Last name is required").trim(),
+  name:z.string().nonempty("Name is required").trim(),
   role: z.enum(UserRole, {
     message: "user role from token is invalid",
   }),

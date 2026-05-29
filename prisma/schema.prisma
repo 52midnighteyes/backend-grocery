@@ -123,7 +123,7 @@ model User {
   name         String
   roleId       String @map("role_id")
   email        String    @unique
-  password     String
+  password     String?
   avatar       String?
   storeId String? @map("store_id")
   isVerified   Boolean   @default(false) @map("is_verified")
