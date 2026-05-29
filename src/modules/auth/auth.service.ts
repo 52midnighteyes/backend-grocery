@@ -38,7 +38,7 @@ const sendVerificationEmail = async (userId:string, name:string, email:string) =
         url: verifyUrl,
     });
 
-    await sendMail(email, "Verifikasi Email Kamu", html);
+    await sendMail(email, "Verifikasi Email Kamu", html, "EMAIL_VERIFICATION");
 };
 
 export const registerService = async (
@@ -123,7 +123,7 @@ export const forgotPasswordService = async (email: string) => {
         name: user.name,
         url: resetUrl,
     });
-    await sendMail(email, "Reset Password", html);
+    await sendMail(email, "Reset Password", html, "EMAIL_VERIFICATION");
 };
 
 export const resetPasswordService = async (token: string, password: string) => {
