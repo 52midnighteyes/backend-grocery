@@ -24,7 +24,8 @@ import {
     invalidateForgotPasswordToken,
     findUserById
 } from "./auth.repository.js"
-import { TJwtTokenPayload } from "../../middlewares/tokenVerification/tokenVerification.schema.js";
+import type { TJwtTokenPayload } from "../../middlewares/tokenVerification/tokenVerification.schema.js";
+import { randomBytes } from "crypto";
 
 const sendVerificationEmail = async (userId:string, name:string, email:string) => {
     const token = signVerifyToken(userId);
@@ -76,7 +77,14 @@ export const verifyEmailService = async (token:string, password:string) => {
     const payload = Jwt.verify(token, VERIFY_TOKEN_SECRET) as { id:string };
 
     const hashedPassword = await argon2.hash(password);
-    await updateUser(payload.id, { password: hashedPassword, isVerified: true })
+
+    const newReferralCode = randomBytes(4).toString("hex").toUpperCase();
+    await updateUser(payload.id, { 
+        password: hashedPassword, 
+        isVerified: true,
+        referralCode: newReferralCode
+    });
+    
     await invalidateRegisterToken(record.id)
 }
 
