@@ -1,18 +1,15 @@
 import nodemailer from "nodemailer";
-import { NODEMAILER_EMAIL, NODEMAILER_PASS } from "../../config/config.js";
+import { MAILTRAP_USER, MAILTRAP_PASS } from "../../config/config.js";
 
-export const transporter = nodemailer.createTransport({
-  service: "gmail",
+const transport = nodemailer.createTransport({
+  host: "sandbox.smtp.mailtrap.io",
+  port: 2525,
   auth: {
-    pass: NODEMAILER_PASS,
-    user: NODEMAILER_EMAIL,
+    user: MAILTRAP_USER,
+    pass: MAILTRAP_PASS,
   },
 });
 
-export const sendMail = async (
-  to: string,
-  subject: string,
-  html: string,
-): Promise<void> => {
-  await transporter.sendMail({ to, subject, html });
+export const sendMail = async (to: string, subject: string, html: string): Promise<void> => {
+  await transport.sendMail({ to, subject, html });
 };

@@ -23,3 +23,23 @@ export const upload = multer({
     cb(null, true);
   },
 });
+
+export const uploadAvatar = multer({
+  storage,
+  limits: {
+    fileSize: 1 * 1024 * 1024,
+  },
+  fileFilter: (_req, file, cb) => {
+    const allowedMimeTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/gif",
+    ];
+
+    if (!allowedMimeTypes.includes(file.mimetype)) {
+      return cb(new AppError(400, "Format tidak didukung. Gunakan JPG, PNG, atau GIF."));
+    }
+
+    cb(null, true);
+  },
+});

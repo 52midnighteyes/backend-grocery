@@ -6,6 +6,7 @@ import { FRONTEND_URL, PORT } from "./config/config.js";
 import helmet from "helmet";
 import { AppError } from "./class/appError.js";
 import { errorHandler } from "./middlewares/errorHandler.middleware.js";
+import authRouter from "./modules/auth/auth.router.js";
 
 const app = express();
 
@@ -45,6 +46,8 @@ app.use("/", (req: Request, _res: Response, next: NextFunction) => {
 app.get("/", (_req: Request, res: Response) => {
   res.send(`Auth boilerplate is running on port: ${PORT}`);
 });
+
+app.use("/api/auth", authRouter);
 
 //route not found handler
 app.use((_req, _res, next) => {
