@@ -16,11 +16,11 @@ import type {
 export const createAdminAccountController = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const adminAccount = await createAdminAccountService(
-      req.validated?.body as TCreateAdminAccountBody
+      req.validated?.body as TCreateAdminAccountBody,
     );
 
     return res.status(201).json({
@@ -35,11 +35,11 @@ export const createAdminAccountController = async (
 export const getAdminAccountsController = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const result = await getAdminAccountsService(
-      req.validated?.query as TGetAdminAccountsQuery
+      req.validated?.query as TGetAdminAccountsQuery,
     );
 
     return res.status(200).json({
@@ -55,7 +55,7 @@ export const getAdminAccountsController = async (
 export const getAdminAccountController = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { id } = req.validated?.params as TAdminAccountIdParam;
@@ -73,13 +73,13 @@ export const getAdminAccountController = async (
 export const updateAdminAccountController = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { id } = req.validated?.params as TAdminAccountIdParam;
     const adminAccount = await updateAdminAccountService(
       id,
-      req.validated?.body as TUpdateAdminAccountBody
+      req.validated?.body as TUpdateAdminAccountBody,
     );
 
     return res.status(200).json({
@@ -94,14 +94,15 @@ export const updateAdminAccountController = async (
 export const deleteAdminAccountController = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { id } = req.validated?.params as TAdminAccountIdParam;
-    await deleteAdminAccountService(id);
+    const data = await deleteAdminAccountService(id);
 
     return res.status(200).json({
       message: "Admin account deleted successfully",
+      data,
     });
   } catch (error) {
     next(error);

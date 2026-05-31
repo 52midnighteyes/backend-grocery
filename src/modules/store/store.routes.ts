@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { permissionGuard } from "../../middlewares/roleGuard/roleGuard.middleware.js";
+import { permissionGuard } from "../../middlewares/permissionGuard/roleGuard.middleware.js";
 import { verifyAccessToken } from "../../middlewares/tokenVerification/tokenVerification.middleware.js";
 import { validateSchema } from "../../middlewares/zodValidator.middleware.js";
 import {
@@ -21,13 +21,13 @@ const storeRoutes = Router();
 storeRoutes.get(
   "/",
   validateSchema(getStoresQuerySchema, "query"),
-  getStoresController
+  getStoresController,
 );
 
 storeRoutes.get(
   "/:id",
   validateSchema(storeIdParamSchema, "params"),
-  getStoreByIdController
+  getStoreByIdController,
 );
 
 storeRoutes.post(
@@ -35,7 +35,7 @@ storeRoutes.post(
   verifyAccessToken,
   permissionGuard("store:create"),
   validateSchema(createStoreBodySchema, "body"),
-  createStoreController
+  createStoreController,
 );
 
 storeRoutes.patch(
@@ -44,7 +44,7 @@ storeRoutes.patch(
   permissionGuard("store:update"),
   validateSchema(storeIdParamSchema, "params"),
   validateSchema(updateStoreBodySchema, "body"),
-  updateStoreController
+  updateStoreController,
 );
 
 storeRoutes.delete(
@@ -52,7 +52,7 @@ storeRoutes.delete(
   verifyAccessToken,
   permissionGuard("store:delete"),
   validateSchema(storeIdParamSchema, "params"),
-  deleteStoreController
+  deleteStoreController,
 );
 
 export default storeRoutes;

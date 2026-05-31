@@ -15,45 +15,24 @@ const optionalBooleanQuery = z.preprocess((value) => {
   return value;
 }, z.coerce.boolean().optional());
 
-const optionalDateQuery = z.preprocess(
-  emptyStringToUndefined,
-  z.coerce.date().optional()
-);
-
 export const managedUserIdParamSchema = z.object({
   id: z.uuid({ error: "User ID is invalid" }),
 });
 
 export const getManagedUsersQuerySchema = z
   .object({
-    id: z.preprocess(
-      emptyStringToUndefined,
-      z.uuid({ error: "User ID is invalid" }).optional()
-    ),
     q: z.preprocess(emptyStringToUndefined, z.string().trim().optional()),
     name: z.preprocess(emptyStringToUndefined, z.string().trim().optional()),
     email: z.preprocess(emptyStringToUndefined, z.string().trim().optional()),
-    roleId: z.preprocess(
-      emptyStringToUndefined,
-      z.uuid({ error: "Role ID is invalid" }).optional()
-    ),
     roleName: z.preprocess(
       emptyStringToUndefined,
       z.string().trim().optional()
-    ),
-    storeId: z.preprocess(
-      emptyStringToUndefined,
-      z.uuid({ error: "Store ID is invalid" }).optional()
     ),
     storeName: z.preprocess(
       emptyStringToUndefined,
       z.string().trim().optional()
     ),
     isVerified: optionalBooleanQuery,
-    createdFrom: optionalDateQuery,
-    createdTo: optionalDateQuery,
-    updatedFrom: optionalDateQuery,
-    updatedTo: optionalDateQuery,
     sortBy: z
       .enum([
         "name",
@@ -69,26 +48,6 @@ export const getManagedUsersQuerySchema = z
     page: optionalNumberQuery.default(1),
     limit: optionalNumberQuery.default(10),
   })
-  .refine(
-    (data) =>
-      !data.createdFrom ||
-      !data.createdTo ||
-      data.createdFrom <= data.createdTo,
-    {
-      message: "createdFrom must be before createdTo",
-      path: ["createdFrom"],
-    }
-  )
-  .refine(
-    (data) =>
-      !data.updatedFrom ||
-      !data.updatedTo ||
-      data.updatedFrom <= data.updatedTo,
-    {
-      message: "updatedFrom must be before updatedTo",
-      path: ["updatedFrom"],
-    }
-  )
   .transform((data) => ({
     ...data,
     limit: Math.min(data.limit, 100),

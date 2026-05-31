@@ -59,16 +59,3 @@ export const buildStoreOrderBy = (
     [query.sortBy]: query.sortOrder,
   };
 };
-
-export const buildPaginationMeta = (
-  page: number,
-  limit: number,
-  total: number
-) => {
-  return {
-    page,
-    limit,
-    total,
-    totalPages: Math.ceil(total / limit),
-  };
-};

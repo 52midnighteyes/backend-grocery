@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { permissionGuard } from "../../middlewares/roleGuard/roleGuard.middleware.js";
+import { permissionGuard } from "../../middlewares/permissionGuard/roleGuard.middleware.js";
 import { verifyAccessToken } from "../../middlewares/tokenVerification/tokenVerification.middleware.js";
 import { validateSchema } from "../../middlewares/zodValidator.middleware.js";
 import {
@@ -19,14 +19,14 @@ userManagementRoutes.get(
   "/",
   permissionGuard("user:read"),
   validateSchema(getManagedUsersQuerySchema, "query"),
-  getManagedUsersController
+  getManagedUsersController,
 );
 
 userManagementRoutes.get(
   "/:id",
   permissionGuard("user:read"),
   validateSchema(managedUserIdParamSchema, "params"),
-  getManagedUserByIdController
+  getManagedUserByIdController,
 );
 
 export default userManagementRoutes;

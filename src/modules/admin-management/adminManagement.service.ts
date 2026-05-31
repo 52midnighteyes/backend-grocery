@@ -1,7 +1,6 @@
 import argon2 from "argon2";
 import { AppError } from "../../class/appError.js";
-import { findRoleById } from "../admin-auth/adminAuth.repository.js";
-import { findStoreById } from "../store/store.repository.js";
+import { buildPaginationMeta } from "../../helper/pagination.js";
 import {
   countAdminAccounts,
   createAdminAccount,
@@ -13,10 +12,11 @@ import {
   updateAdminAccount,
 } from "../user/user.repository.js";
 import {
+  assertAdminRole,
+  assertStoreExists,
   buildAdminAccountOrderBy,
   buildAdminAccountUpdateData,
   buildAdminAccountWhere,
-  buildPaginationMeta,
   sanitizeAdminAccount,
 } from "./adminManagement.helper.js";
 import type {
@@ -25,27 +25,8 @@ import type {
   TUpdateAdminAccountBody,
 } from "./adminManagement.schemas.js";
 
-const assertAdminRole = async (roleId: string) => {
-  const role = await findRoleById(roleId);
-  if (!role) throw new AppError(404, "Role was not found");
-
-  const isAdminRole = role.name === "storeAdmin" || role.name === "superAdmin";
-  if (!isAdminRole) {
-    throw new AppError(400, "Role is not allowed for admin account");
-  }
-
-  return role;
-};
-
-const assertStoreExists = async (storeId: string) => {
-  const store = await findStoreById(storeId);
-  if (!store) throw new AppError(404, "Store was not found");
-
-  return store;
-};
-
 export const createAdminAccountService = async (
-  params: TCreateAdminAccountBody
+  params: TCreateAdminAccountBody,
 ) => {
   const existingUser = await findUserByEmail(params.email);
   if (existingUser) throw new AppError(400, "Email is already in use");
@@ -88,7 +69,7 @@ export const createAdminAccountService = async (
 };
 
 export const getAdminAccountsService = async (
-  params: TGetAdminAccountsQuery
+  params: TGetAdminAccountsQuery,
 ) => {
   const page = params.page;
   const limit = params.limit;
@@ -107,7 +88,7 @@ export const getAdminAccountsService = async (
 
   return {
     data: adminAccounts.map((adminAccount) =>
-      sanitizeAdminAccount(adminAccount)
+      sanitizeAdminAccount(adminAccount),
     ),
     meta: buildPaginationMeta(page, limit, total),
   };
@@ -122,7 +103,7 @@ export const getAdminAccountService = async (id: string) => {
 
 export const updateAdminAccountService = async (
   id: string,
-  params: TUpdateAdminAccountBody
+  params: TUpdateAdminAccountBody,
 ) => {
   const adminAccount = await findAdminAccountById(id);
   if (!adminAccount) throw new AppError(404, "Admin account was not found");
@@ -156,7 +137,7 @@ export const updateAdminAccountService = async (
       ...params,
       storeId: nextRoleName === "superAdmin" ? null : params.storeId,
     },
-    hashedPassword
+    hashedPassword,
   );
 
   const updatedAdminAccount = await updateAdminAccount(id, data);
@@ -167,5 +148,7 @@ export const deleteAdminAccountService = async (id: string) => {
   const adminAccount = await findAdminAccountById(id);
   if (!adminAccount) throw new AppError(404, "Admin account was not found");
 
-  await softDeleteAdminAccount(id);
+  const user = await softDeleteAdminAccount(id);
+
+  return sanitizeAdminAccount(user);
 };

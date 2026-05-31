@@ -1,27 +1,35 @@
 import type { NextFunction, Request, Response } from "express";
-import { setAuthCookies } from "../auth/auth.helper.js";
 import {
   getAdminProfileService,
   loginAdminService,
-  logoutAdminService,
   refreshAdminTokenService,
 } from "./adminAuth.service.js";
 import type { TAdminLoginBody } from "./adminAuth.schemas.js";
+import {
+  accessTokenConfig,
+  refreshTokenConfig,
+} from "../../constant/cookie-options.constant.js";
+import {
+  setAdminAuthCookies,
+  verifyRefreshTokenHelper,
+} from "./adminAuth.helper.js";
+import { AppError } from "../../class/appError.js";
 
 export const loginAdminController = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const payload = await loginAdminService(
-      req.validated?.body as TAdminLoginBody
+      req.validated?.body as TAdminLoginBody,
     );
 
-    setAuthCookies(res, payload);
+    setAdminAuthCookies(res, payload);
 
     return res.status(200).json({
       message: "Admin login successful",
+      data: payload,
     });
   } catch (error) {
     next(error);
@@ -31,10 +39,11 @@ export const loginAdminController = async (
 export const logoutAdminController = (
   _req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
-    logoutAdminService(res);
+    res.clearCookie("accessToken", accessTokenConfig);
+    res.clearCookie("refreshToken", refreshTokenConfig);
 
     return res.status(200).json({
       message: "Admin logout successful",
@@ -47,16 +56,22 @@ export const logoutAdminController = (
 export const refreshAdminTokenController = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
+    verifyRefreshTokenHelper(req); //sementara
     const payload = await refreshAdminTokenService(req.user!.id);
-    setAuthCookies(res, payload);
+    setAdminAuthCookies(res, payload);
 
     return res.status(200).json({
       message: "Admin token refreshed successfully",
+      data: payload,
     });
   } catch (error) {
+    if (error instanceof AppError && error.statusCode === 401) {
+      res.clearCookie("accessToken", accessTokenConfig);
+      res.clearCookie("refreshToken", refreshTokenConfig);
+    }
     next(error);
   }
 };
@@ -64,13 +79,13 @@ export const refreshAdminTokenController = async (
 export const getAdminProfileController = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
-    const profile = await getAdminProfileService(req.user!.id);
+    const data = await getAdminProfileService(req.user!.id);
 
     return res.status(200).json({
-      data: profile,
+      data,
     });
   } catch (error) {
     next(error);

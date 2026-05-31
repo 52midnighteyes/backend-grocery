@@ -18,3 +18,28 @@ export const findRoleById = async (id: string, db: TPrisma = prisma) => {
     },
   });
 };
+
+export const findRoleByIdWithPermissions = async (
+  id: string,
+  db: TPrisma = prisma
+) => {
+  return await db.role.findFirst({
+    where: {
+      id,
+      deletedAt: null,
+    },
+    include: {
+      rolePermissions: {
+        where: {
+          deletedAt: null,
+          permission: {
+            deletedAt: null,
+          },
+        },
+        include: {
+          permission: true,
+        },
+      },
+    },
+  });
+};

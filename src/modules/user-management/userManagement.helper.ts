@@ -6,9 +6,9 @@ import type { TUserWithSensitiveFields } from "./userManagement.models.js";
 import type { TGetManagedUsersQuery } from "./userManagement.schemas.js";
 
 export const sanitizeManagedUser = <
-  TUser extends TUserWithSensitiveFields | null
+  TUser extends TUserWithSensitiveFields | null,
 >(
-  user: TUser
+  user: TUser,
 ) => {
   if (!user) return null;
 
@@ -17,17 +17,13 @@ export const sanitizeManagedUser = <
 };
 
 export const buildManagedUserWhere = (
-  query: TGetManagedUsersQuery
+  query: TGetManagedUsersQuery,
 ): UserWhereInput => {
   const where: UserWhereInput = {
     deletedAt: null,
   };
 
   const andConditions: UserWhereInput[] = [];
-
-  if (query.id) andConditions.push({ id: query.id });
-  if (query.roleId) andConditions.push({ roleId: query.roleId });
-  if (query.storeId) andConditions.push({ storeId: query.storeId });
 
   if (query.q) {
     andConditions.push({
@@ -68,24 +64,6 @@ export const buildManagedUserWhere = (
     andConditions.push({ isVerified: query.isVerified });
   }
 
-  if (query.createdFrom || query.createdTo) {
-    andConditions.push({
-      createdAt: {
-        gte: query.createdFrom,
-        lte: query.createdTo,
-      },
-    });
-  }
-
-  if (query.updatedFrom || query.updatedTo) {
-    andConditions.push({
-      updatedAt: {
-        gte: query.updatedFrom,
-        lte: query.updatedTo,
-      },
-    });
-  }
-
   if (andConditions.length) {
     where.AND = andConditions;
   }
@@ -94,7 +72,7 @@ export const buildManagedUserWhere = (
 };
 
 export const buildManagedUserOrderBy = (
-  query: TGetManagedUsersQuery
+  query: TGetManagedUsersQuery,
 ): UserOrderByWithRelationInput => {
   if (query.sortBy === "roleName") {
     return { role: { name: query.sortOrder } };
@@ -105,17 +83,4 @@ export const buildManagedUserOrderBy = (
   }
 
   return { [query.sortBy]: query.sortOrder };
-};
-
-export const buildPaginationMeta = (
-  page: number,
-  limit: number,
-  total: number
-) => {
-  return {
-    page,
-    limit,
-    total,
-    totalPages: Math.ceil(total / limit),
-  };
 };

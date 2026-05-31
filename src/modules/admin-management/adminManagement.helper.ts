@@ -3,6 +3,10 @@ import {
   UserUpdateInput,
   UserWhereInput,
 } from "../../../generated/prisma/models.js";
+import { AppError } from "../../class/appError.js";
+import { hasPermission } from "../admin-auth/adminAuth.helper.js";
+import { findRoleByIdWithPermissions } from "../admin-auth/adminAuth.repository.js";
+import { findStoreById } from "../store/store.repository.js";
 import type {
   TGetAdminAccountsQuery,
   TUpdateAdminAccountBody,
@@ -10,9 +14,9 @@ import type {
 import type { TAdminAccountWithSensitiveFields } from "./adminManagement.models.js";
 
 export const sanitizeAdminAccount = <
-  TAdminAccount extends TAdminAccountWithSensitiveFields | null
+  TAdminAccount extends TAdminAccountWithSensitiveFields | null,
 >(
-  adminAccount: TAdminAccount
+  adminAccount: TAdminAccount,
 ) => {
   if (!adminAccount) return null;
 
@@ -22,7 +26,7 @@ export const sanitizeAdminAccount = <
 
 export const buildAdminAccountUpdateData = (
   params: TUpdateAdminAccountBody,
-  hashedPassword?: string
+  hashedPassword?: string,
 ): UserUpdateInput => {
   return {
     name: params.name,
@@ -44,33 +48,37 @@ export const buildAdminAccountUpdateData = (
           },
         }
       : params.storeId
-      ? {
-          store: {
-            connect: {
-              id: params.storeId,
+        ? {
+            store: {
+              connect: {
+                id: params.storeId,
+              },
             },
-          },
-        }
-      : {}),
+          }
+        : {}),
   };
 };
 
 export const buildAdminAccountWhere = (
-  query: TGetAdminAccountsQuery
+  query: TGetAdminAccountsQuery,
 ): UserWhereInput => {
   const where: UserWhereInput = {
     deletedAt: null,
     role: {
       deletedAt: null,
-      OR: [{ name: "storeAdmin" }, { name: "superAdmin" }],
+      rolePermissions: {
+        some: {
+          deletedAt: null,
+          permission: {
+            deletedAt: null,
+            name: "admin:login",
+          },
+        },
+      },
     },
   };
 
   const andConditions: UserWhereInput[] = [];
-
-  if (query.id) andConditions.push({ id: query.id });
-  if (query.roleId) andConditions.push({ roleId: query.roleId });
-  if (query.storeId) andConditions.push({ storeId: query.storeId });
 
   if (query.q) {
     andConditions.push({
@@ -111,24 +119,6 @@ export const buildAdminAccountWhere = (
     andConditions.push({ isVerified: query.isVerified });
   }
 
-  if (query.createdFrom || query.createdTo) {
-    andConditions.push({
-      createdAt: {
-        gte: query.createdFrom,
-        lte: query.createdTo,
-      },
-    });
-  }
-
-  if (query.updatedFrom || query.updatedTo) {
-    andConditions.push({
-      updatedAt: {
-        gte: query.updatedFrom,
-        lte: query.updatedTo,
-      },
-    });
-  }
-
   if (andConditions.length) {
     where.AND = andConditions;
   }
@@ -137,7 +127,7 @@ export const buildAdminAccountWhere = (
 };
 
 export const buildAdminAccountOrderBy = (
-  query: TGetAdminAccountsQuery
+  query: TGetAdminAccountsQuery,
 ): UserOrderByWithRelationInput => {
   if (query.sortBy === "roleName") {
     return { role: { name: query.sortOrder } };
@@ -152,15 +142,20 @@ export const buildAdminAccountOrderBy = (
   };
 };
 
-export const buildPaginationMeta = (
-  page: number,
-  limit: number,
-  total: number
-) => {
-  return {
-    page,
-    limit,
-    total,
-    totalPages: Math.ceil(total / limit),
-  };
+export const assertAdminRole = async (roleId: string) => {
+  const role = await findRoleByIdWithPermissions(roleId);
+  if (!role) throw new AppError(404, "Role was not found");
+
+  if (!hasPermission(role, "admin:login")) {
+    throw new AppError(400, "Role is not allowed for admin account");
+  }
+
+  return role;
+};
+
+export const assertStoreExists = async (storeId: string) => {
+  const store = await findStoreById(storeId);
+  if (!store) throw new AppError(404, "Store was not found");
+
+  return store;
 };

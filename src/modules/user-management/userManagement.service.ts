@@ -1,4 +1,5 @@
 import { AppError } from "../../class/appError.js";
+import { buildPaginationMeta } from "../../helper/pagination.js";
 import {
   countUsers,
   findUserById,
@@ -7,7 +8,6 @@ import {
 import {
   buildManagedUserOrderBy,
   buildManagedUserWhere,
-  buildPaginationMeta,
   sanitizeManagedUser,
 } from "./userManagement.helper.js";
 import type { TGetManagedUsersQuery } from "./userManagement.schemas.js";

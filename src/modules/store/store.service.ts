@@ -1,4 +1,5 @@
 import { AppError } from "../../class/appError.js";
+import { buildPaginationMeta } from "../../helper/pagination.js";
 import {
   countStores,
   createStore,
@@ -14,11 +15,7 @@ import type {
   TGetStoresQuery,
   TUpdateStoreBody,
 } from "./store.schemas.js";
-import {
-  buildPaginationMeta,
-  buildStoreOrderBy,
-  buildStoreWhere,
-} from "./store.helper.js";
+import { buildStoreOrderBy, buildStoreWhere } from "./store.helper.js";
 
 export const getStoresService = async (params: TGetStoresQuery) => {
   const page = params.page;

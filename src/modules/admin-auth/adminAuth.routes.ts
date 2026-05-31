@@ -17,15 +17,11 @@ const adminAuthRoutes = Router();
 adminAuthRoutes.post(
   "/login",
   validateSchema(adminLoginBodySchema, "body"),
-  loginAdminController
+  loginAdminController,
 );
 
 adminAuthRoutes.post("/logout", verifyAccessToken, logoutAdminController);
-adminAuthRoutes.post(
-  "/refresh",
-  verifyRefreshToken,
-  refreshAdminTokenController
-);
+adminAuthRoutes.post("/refresh", refreshAdminTokenController);
 adminAuthRoutes.get("/me", verifyAccessToken, getAdminProfileController);
 
 export default adminAuthRoutes;
