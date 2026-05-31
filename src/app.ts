@@ -6,8 +6,11 @@ import { FRONTEND_URL, PORT } from "./config/config.js";
 import helmet from "helmet";
 import { AppError } from "./class/appError.js";
 import { errorHandler } from "./middlewares/errorHandler.middleware.js";
+import adminManagementRoutes from "./modules/admin-management/adminManagement.routes.js";
+import adminAuthRoutes from "./modules/admin-auth/adminAuth.routes.js";
 import authRouter from "./modules/auth/auth.router.js";
-import productRoutes from "./modules/product.routes.js";
+import storeRoutes from "./modules/store/store.routes.js";
+import userManagementRoutes from "./modules/user-management/userManagement.routes.js";
 
 const app = express();
 
@@ -49,7 +52,10 @@ app.get("/", (_req: Request, res: Response) => {
 });
 
 app.use("/api/auth", authRouter);
-app.use("/products", productRoutes);
+app.use("/api/admin/auth", adminAuthRoutes);
+app.use("/api/admin/admin-accounts", adminManagementRoutes);
+app.use("/api/admin/users", userManagementRoutes);
+app.use("/api/stores", storeRoutes);
 
 //route not found handler
 app.use((_req, _res, next) => {

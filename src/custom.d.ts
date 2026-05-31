@@ -10,17 +10,17 @@ import { TJwtTokenPayload } from "./middlewares/tokenVerification/tokenVerificat
 //   isVerified: boolean;
 // }
 
-// export interface IValidatedRequest {
-//   query?: unknown;
-//   body?: unknown;
-//   params?: unknown;
-// }
+export interface IValidatedRequest {
+  query?: unknown;
+  body?: unknown;
+  params?: unknown;
+}
 
 declare global {
   namespace Express {
     interface Request {
       user?: TJwtTokenPayload;
-      // validated?: IValidatedRequest;
+      validated?: IValidatedRequest;
     }
   }
 }
