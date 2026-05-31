@@ -2,12 +2,11 @@ import express, { NextFunction, type Request, type Response } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 
-import { FRONTEND_URL, PORT } from "./config/config.js";
+import { FRONTEND_URL, NODE_ENV, PORT } from "./config/config.js";
 import helmet from "helmet";
 import { AppError } from "./class/appError.js";
 import { errorHandler } from "./middlewares/errorHandler.middleware.js";
 import authRouter from "./modules/auth/auth.router.js";
-import productRoutes from "./modules/product.routes.js";
 
 const app = express();
 
@@ -18,12 +17,16 @@ app.use(
   cors({
     origin: FRONTEND_URL,
     credentials: true,
-  })
+  }),
 );
 app.use(helmet());
 app.use(express.json());
 
 app.use((req: Request, _res: Response, next: NextFunction) => {
+  if (NODE_ENV.toLowerCase() !== "development") {
+    return next();
+  }
+
   console.log("===== Incoming Request =====");
   console.log("Time     :", new Date().toISOString());
   console.log("Method   :", req.method);
@@ -49,7 +52,6 @@ app.get("/", (_req: Request, res: Response) => {
 });
 
 app.use("/api/auth", authRouter);
-app.use("/products", productRoutes);
 
 //route not found handler
 app.use((_req, _res, next) => {
