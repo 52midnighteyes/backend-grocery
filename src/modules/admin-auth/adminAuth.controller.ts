@@ -9,10 +9,7 @@ import {
   accessTokenConfig,
   refreshTokenConfig,
 } from "../../constant/cookie-options.constant.js";
-import {
-  setAdminAuthCookies,
-  verifyRefreshTokenHelper,
-} from "./adminAuth.helper.js";
+import { setAdminAuthCookies } from "./adminAuth.helper.js";
 import { AppError } from "../../class/appError.js";
 
 export const loginAdminController = async (
@@ -21,15 +18,15 @@ export const loginAdminController = async (
   next: NextFunction,
 ) => {
   try {
-    const payload = await loginAdminService(
+    const result = await loginAdminService(
       req.validated?.body as TAdminLoginBody,
     );
 
-    setAdminAuthCookies(res, payload);
+    setAdminAuthCookies(res, result.tokenPayload);
 
     return res.status(200).json({
       message: "Admin login successful",
-      data: payload,
+      data: result.session,
     });
   } catch (error) {
     next(error);
@@ -42,8 +39,8 @@ export const logoutAdminController = (
   next: NextFunction,
 ) => {
   try {
-    res.clearCookie("accessToken", accessTokenConfig);
-    res.clearCookie("refreshToken", refreshTokenConfig);
+    res.clearCookie("adminAccessToken", accessTokenConfig);
+    res.clearCookie("adminRefreshToken", refreshTokenConfig);
 
     return res.status(200).json({
       message: "Admin logout successful",
@@ -59,18 +56,17 @@ export const refreshAdminTokenController = async (
   next: NextFunction,
 ) => {
   try {
-    verifyRefreshTokenHelper(req); //sementara
-    const payload = await refreshAdminTokenService(req.user!.id);
-    setAdminAuthCookies(res, payload);
+    const result = await refreshAdminTokenService(req.user!.id);
+    setAdminAuthCookies(res, result.tokenPayload);
 
     return res.status(200).json({
       message: "Admin token refreshed successfully",
-      data: payload,
+      data: result.session,
     });
   } catch (error) {
     if (error instanceof AppError && error.statusCode === 401) {
-      res.clearCookie("accessToken", accessTokenConfig);
-      res.clearCookie("refreshToken", refreshTokenConfig);
+      res.clearCookie("adminAccessToken", accessTokenConfig);
+      res.clearCookie("adminRefreshToken", refreshTokenConfig);
     }
     next(error);
   }
@@ -85,6 +81,7 @@ export const getAdminProfileController = async (
     const data = await getAdminProfileService(req.user!.id);
 
     return res.status(200).json({
+      message: "Admin profile fetched successfully",
       data,
     });
   } catch (error) {

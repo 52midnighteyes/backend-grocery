@@ -28,6 +28,7 @@ export const findUserByEmailWithRolePermissions = async (
       deletedAt: null,
     },
     include: {
+      store: true,
       role: {
         include: {
           rolePermissions: {

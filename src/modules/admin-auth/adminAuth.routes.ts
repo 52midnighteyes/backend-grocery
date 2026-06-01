@@ -1,8 +1,8 @@
 import { Router } from "express";
 import {
-  verifyAccessToken,
-  verifyRefreshToken,
-} from "../../middlewares/tokenVerification/tokenVerification.middleware.js";
+  verifyAdminAccessToken,
+  verifyAdminRefreshToken,
+} from "../../middlewares/tokenVerification/adminTokenVerification.middleware.js";
 import { validateSchema } from "../../middlewares/zodValidator.middleware.js";
 import {
   getAdminProfileController,
@@ -20,8 +20,12 @@ adminAuthRoutes.post(
   loginAdminController,
 );
 
-adminAuthRoutes.post("/logout", verifyAccessToken, logoutAdminController);
-adminAuthRoutes.post("/refresh", refreshAdminTokenController);
-adminAuthRoutes.get("/me", verifyAccessToken, getAdminProfileController);
+adminAuthRoutes.post("/logout", verifyAdminAccessToken, logoutAdminController);
+adminAuthRoutes.post(
+  "/refresh",
+  verifyAdminRefreshToken,
+  refreshAdminTokenController,
+);
+adminAuthRoutes.get("/me", verifyAdminAccessToken, getAdminProfileController);
 
 export default adminAuthRoutes;

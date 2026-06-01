@@ -40,6 +40,7 @@ app.use((req: Request, _res: Response, next: NextFunction) => {
   console.log("Query    :", req.query);
   console.log("File     :", req.file);
   console.log("refreshToken :", req.cookies.refreshToken);
+  console.log("adminRefreshToken :", req.cookies.adminRefreshToken);
   console.log("============================\n");
 
   next();

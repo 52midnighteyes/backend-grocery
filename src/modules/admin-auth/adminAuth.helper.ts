@@ -3,14 +3,17 @@ import type { TJwtTokenPayload } from "../../middlewares/tokenVerification/token
 import { findUserByIdWithRolePermissions } from "../user/user.repository.js";
 import type { TAdminAuthUserWithSensitiveFields } from "./adminAuth.models.js";
 import type { TAdminAuthTokenPayloadSource } from "./adminAuth.models.js";
+import type { TAdminSession } from "./adminAuth.models.js";
 import Jwt from "jsonwebtoken";
-import { JWT_SECRET, REFRESH_TOKEN_SECRET } from "../../config/config.js";
-import type { Response, Request, NextFunction } from "express";
+import {
+  ADMIN_ACCESS_TOKEN_SECRET,
+  ADMIN_REFRESH_TOKEN_SECRET,
+} from "../../config/config.js";
+import type { Response } from "express";
 import {
   accessTokenConfig,
   refreshTokenConfig,
 } from "../../constant/cookie-options.constant.js";
-import { jwtTokenSchema } from "../../middlewares/tokenVerification/tokenVerification.schema.js";
 
 export const hasAdminLoginPermission = (user: {
   role: {
@@ -65,6 +68,28 @@ export const buildAdminTokenPayload = (
   };
 };
 
+export const buildAdminSession = (
+  user: TAdminAuthTokenPayloadSource,
+): TAdminSession => {
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    avatar: user.avatar,
+    isVerified: user.isVerified,
+    role: user.role.name,
+    roleId: user.roleId,
+    store: user.store
+      ? {
+          id: user.store.id,
+          name: user.store.name,
+          latitude: user.store.latitude,
+          longitude: user.store.longitude,
+        }
+      : null,
+  };
+};
+
 export const sanitizeAdminAuthUser = <
   TUser extends TAdminAuthUserWithSensitiveFields | null,
 >(
@@ -80,29 +105,12 @@ export const setAdminAuthCookies = (
   res: Response,
   payload: TJwtTokenPayload,
 ): void => {
-  const accessToken = Jwt.sign(payload, JWT_SECRET, { expiresIn: "15m" });
-  const refreshToken = Jwt.sign(payload, REFRESH_TOKEN_SECRET, {
+  const accessToken = Jwt.sign(payload, ADMIN_ACCESS_TOKEN_SECRET, {
+    expiresIn: "15m",
+  });
+  const refreshToken = Jwt.sign(payload, ADMIN_REFRESH_TOKEN_SECRET, {
     expiresIn: "7d",
   });
-  res.cookie("accessToken", accessToken, accessTokenConfig);
-  res.cookie("refreshToken", refreshToken, refreshTokenConfig);
-};
-
-export const verifyRefreshTokenHelper = (req: Request): TJwtTokenPayload => {
-  const token = req.cookies?.refreshToken;
-
-  if (!token) {
-    throw new AppError(401, "Unauthorized");
-  }
-
-  try {
-    const decoded = Jwt.verify(token, REFRESH_TOKEN_SECRET);
-    const verification = jwtTokenSchema.parse(decoded);
-
-    req.user = verification;
-
-    return verification;
-  } catch {
-    throw new AppError(401, "Unauthorized");
-  }
+  res.cookie("adminAccessToken", accessToken, accessTokenConfig);
+  res.cookie("adminRefreshToken", refreshToken, refreshTokenConfig);
 };

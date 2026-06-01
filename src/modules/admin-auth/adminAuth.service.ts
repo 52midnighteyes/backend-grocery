@@ -4,15 +4,21 @@ import type { TJwtTokenPayload } from "../../middlewares/tokenVerification/token
 import { findUserByEmailWithRolePermissions } from "../user/user.repository.js";
 import type { TAdminLoginBody } from "./adminAuth.schemas.js";
 import {
+  buildAdminSession,
   buildAdminTokenPayload,
   hasAdminLoginPermission,
-  sanitizeAdminAuthUser,
   assertAdminAccess,
 } from "./adminAuth.helper.js";
+import type { TAdminSession } from "./adminAuth.models.js";
+
+type TAdminAuthResult = {
+  tokenPayload: TJwtTokenPayload;
+  session: TAdminSession;
+};
 
 export const loginAdminService = async (
   params: TAdminLoginBody,
-): Promise<TJwtTokenPayload> => {
+): Promise<TAdminAuthResult> => {
   const user = await findUserByEmailWithRolePermissions(params.email);
   if (!user || !user.password) {
     throw new AppError(401, "Email or password is incorrect");
@@ -27,19 +33,27 @@ export const loginAdminService = async (
     throw new AppError(403, "Only admin users can access the admin dashboard");
   }
 
-  return buildAdminTokenPayload(user);
+  return {
+    tokenPayload: buildAdminTokenPayload(user),
+    session: buildAdminSession(user),
+  };
 };
 
 export const refreshAdminTokenService = async (
   userId: string,
-): Promise<TJwtTokenPayload> => {
+): Promise<TAdminAuthResult> => {
   const user = await assertAdminAccess(userId);
 
-  return buildAdminTokenPayload(user);
+  return {
+    tokenPayload: buildAdminTokenPayload(user),
+    session: buildAdminSession(user),
+  };
 };
 
-export const getAdminProfileService = async (userId: string) => {
+export const getAdminProfileService = async (
+  userId: string,
+): Promise<TAdminSession> => {
   const user = await assertAdminAccess(userId);
 
-  return sanitizeAdminAuthUser(user);
+  return buildAdminSession(user);
 };

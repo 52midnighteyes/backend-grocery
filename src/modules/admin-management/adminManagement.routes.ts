@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { permissionGuard } from "../../middlewares/permissionGuard/roleGuard.middleware.js";
-import { verifyAccessToken } from "../../middlewares/tokenVerification/tokenVerification.middleware.js";
+import { verifyAdminAccessToken } from "../../middlewares/tokenVerification/adminTokenVerification.middleware.js";
 import { validateSchema } from "../../middlewares/zodValidator.middleware.js";
 import {
   createAdminAccountController,
@@ -18,7 +18,7 @@ import {
 
 const adminManagementRoutes = Router();
 
-adminManagementRoutes.use(verifyAccessToken);
+adminManagementRoutes.use(verifyAdminAccessToken);
 
 adminManagementRoutes.post(
   "/",
