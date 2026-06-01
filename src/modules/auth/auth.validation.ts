@@ -63,3 +63,14 @@ export const changePasswordBodySchema = z.object({
     message: "Password tidak cocok",
     path: ["confirmPassword"],
 });
+
+export type TRegisterBody = z.infer<typeof registerBodySchema>;
+export type TVerifyEmailBody = z.infer<typeof verifyEmailBodySchema>;
+export type TVerifyEmailQuery = z.infer<typeof verifyEmailQuerySchema>;
+export type TLoginBody = z.infer<typeof loginBodySchema>;
+export type TEmailBody = z.infer<typeof forgotPasswordBodySchema>;
+export type TResetPasswordBody = z.infer<typeof resetPasswordBodySchema>;
+export type TResetPasswordQuery = z.infer<typeof resetPasswordQuerySchema>;
+export type TUpdateProfileBody = z.infer<typeof updateProfileBodySchema>;
+export type TChangeEmailBody = z.infer<typeof changeEmailBodySchema>;
+export type TChangePasswordBody = z.infer<typeof changePasswordBodySchema>;

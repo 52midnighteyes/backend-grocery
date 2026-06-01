@@ -1,26 +1,16 @@
-import type { UserRole } from "../generated/prisma/enums.js";
 import { TJwtTokenPayload } from "./middlewares/tokenVerification/tokenVerification.schema.ts";
-// export interface IUserParams {
-//   id: string;
-//   email: string;
-//   firstName: string;
-//   lastName: string;
-//   role: UserRole;
-//   avatarUrl: string | null;
-//   isVerified: boolean;
-// }
 
-// export interface IValidatedRequest {
-//   query?: unknown;
-//   body?: unknown;
-//   params?: unknown;
-// }
+export interface IValidatedRequest {
+  query?: unknown;
+  body?: unknown;
+  params?: unknown;
+}
 
 declare global {
   namespace Express {
     interface Request {
       user?: TJwtTokenPayload;
-      // validated?: IValidatedRequest;
+      validated?: IValidatedRequest;
     }
   }
 }
