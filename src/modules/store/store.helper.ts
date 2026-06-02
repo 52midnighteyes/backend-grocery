@@ -17,12 +17,6 @@ export const buildStoreWhere = (query: TGetStoresQuery): StoreWhereInput => {
     });
   }
 
-  if (query.name) {
-    andConditions.push({
-      name: { contains: query.name, mode: "insensitive" },
-    });
-  }
-
   if (andConditions.length) {
     where.AND = andConditions;
   }

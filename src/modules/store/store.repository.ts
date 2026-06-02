@@ -1,7 +1,5 @@
 import {
-  StoreCreateInput,
   StoreFindManyArgs,
-  StoreUpdateInput,
   StoreWhereInput,
 } from "../../../generated/prisma/models.js";
 import { prisma } from "../../libs/prisma/prisma.lib.js";
@@ -16,31 +14,6 @@ export const findStoreById = async (id: string, db: TPrisma = prisma) => {
   return await db.store.findFirst({
     where: {
       id,
-      deletedAt: null,
-    },
-  });
-};
-
-export const findStoreByName = async (name: string, db: TPrisma = prisma) => {
-  return await db.store.findFirst({
-    where: {
-      name,
-      deletedAt: null,
-    },
-  });
-};
-
-export const findStoreByNameExceptId = async (
-  name: string,
-  id: string,
-  db: TPrisma = prisma
-) => {
-  return await db.store.findFirst({
-    where: {
-      name,
-      id: {
-        not: id,
-      },
       deletedAt: null,
     },
   });
@@ -77,37 +50,4 @@ export const countStores = async (
   db: TPrisma = prisma
 ) => {
   return await db.store.count({ where });
-};
-
-export const createStore = async (
-  params: StoreCreateInput,
-  db: TPrisma = prisma
-) => {
-  return await db.store.create({
-    data: params,
-  });
-};
-
-export const updateStore = async (
-  id: string,
-  params: StoreUpdateInput,
-  db: TPrisma = prisma
-) => {
-  return await db.store.update({
-    where: {
-      id,
-    },
-    data: params,
-  });
-};
-
-export const softDeleteStore = async (id: string, db: TPrisma = prisma) => {
-  return await db.store.update({
-    where: {
-      id,
-    },
-    data: {
-      deletedAt: new Date(),
-    },
-  });
 };
