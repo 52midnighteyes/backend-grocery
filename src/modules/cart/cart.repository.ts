@@ -51,6 +51,18 @@ export const findCartItemByProductId = async (
   });
 };
 
+// Cek keberadaan item termasuk yang soft-deleted.
+// Dipakai oleh upsertCartItem untuk memutuskan restore atau create baru.
+export const findCartItemByProductIdIncludeDeleted = async (
+  cartId: string,
+  productId: string,
+  db: TPrisma = prisma,
+) => {
+  return db.cartItem.findFirst({
+    where: { cartId, productId },
+  });
+};
+
 export const findProductStockByStore = async (
   productId: string,
   storeId: string,
@@ -67,22 +79,34 @@ export const createCart = async (userId: string, db: TPrisma = prisma) => {
   });
 };
 
+// Menggantikan Prisma upsert karena upsert tidak restore deletedAt.
+// Alurnya:
+// 1. Cek apakah ada row untuk cartId + productId (termasuk soft-deleted)
+// 2. Kalau ada (deleted atau tidak) -> restore deletedAt ke null dan increment quantity
+// 3. Kalau tidak ada sama sekali -> create baru
 export const upsertCartItem = async (
   cartId: string,
   payload: TAddToCartPayload,
   db: TPrisma = prisma,
 ) => {
-  return db.cartItem.upsert({
-    where: {
-      cartId_productId: {
-        cartId,
-        productId: payload.productId,
+  const existing = await findCartItemByProductIdIncludeDeleted(
+    cartId,
+    payload.productId,
+    db,
+  );
+
+  if (existing) {
+    return db.cartItem.update({
+      where: { id: existing.id },
+      data: {
+        quantity: existing.quantity + payload.quantity,
+        deletedAt: null,
       },
-    },
-    update: {
-      quantity: { increment: payload.quantity },
-    },
-    create: {
+    });
+  }
+
+  return db.cartItem.create({
+    data: {
       cartId,
       productId: payload.productId,
       quantity: payload.quantity,
