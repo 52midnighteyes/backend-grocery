@@ -1,11 +1,12 @@
 import { Router } from "express";
 import { permissionGuard } from "../../middlewares/permissionGuard/roleGuard.middleware.js";
-import { verifyAccessToken } from "../../middlewares/tokenVerification/tokenVerification.middleware.js";
+import { verifyAdminAccessToken } from "../../middlewares/tokenVerification/adminTokenVerification.middleware.js";
 import { validateSchema } from "../../middlewares/zodValidator.middleware.js";
 import {
   createStoreController,
   deleteStoreController,
   getStoreByIdController,
+  getStoreOptionsController,
   getStoresController,
   updateStoreController,
 } from "./store.controller.js";
@@ -21,38 +22,40 @@ const storeRoutes = Router();
 storeRoutes.get(
   "/",
   validateSchema(getStoresQuerySchema, "query"),
-  getStoresController,
+  getStoresController
 );
+
+storeRoutes.get("/options", getStoreOptionsController);
 
 storeRoutes.get(
   "/:id",
   validateSchema(storeIdParamSchema, "params"),
-  getStoreByIdController,
+  getStoreByIdController
 );
 
 storeRoutes.post(
   "/",
-  verifyAccessToken,
+  verifyAdminAccessToken,
   permissionGuard("store:create"),
   validateSchema(createStoreBodySchema, "body"),
-  createStoreController,
+  createStoreController
 );
 
 storeRoutes.patch(
   "/:id",
-  verifyAccessToken,
+  verifyAdminAccessToken,
   permissionGuard("store:update"),
   validateSchema(storeIdParamSchema, "params"),
   validateSchema(updateStoreBodySchema, "body"),
-  updateStoreController,
+  updateStoreController
 );
 
 storeRoutes.delete(
   "/:id",
-  verifyAccessToken,
+  verifyAdminAccessToken,
   permissionGuard("store:delete"),
   validateSchema(storeIdParamSchema, "params"),
-  deleteStoreController,
+  deleteStoreController
 );
 
 export default storeRoutes;

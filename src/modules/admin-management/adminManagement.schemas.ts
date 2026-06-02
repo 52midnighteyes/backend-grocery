@@ -34,9 +34,17 @@ export const getAdminAccountsQuerySchema = z
       emptyStringToUndefined,
       z.string().trim().optional()
     ),
+    roleId: z.preprocess(
+      emptyStringToUndefined,
+      z.uuid({ error: "Role ID is invalid" }).optional()
+    ),
     storeName: z.preprocess(
       emptyStringToUndefined,
       z.string().trim().optional()
+    ),
+    storeId: z.preprocess(
+      emptyStringToUndefined,
+      z.uuid({ error: "Store ID is invalid" }).optional()
     ),
     isVerified: optionalBooleanQuery,
     sortBy: z

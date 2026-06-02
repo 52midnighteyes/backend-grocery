@@ -109,9 +109,21 @@ export const buildAdminAccountWhere = (
     });
   }
 
+  if (query.roleId) {
+    andConditions.push({
+      roleId: query.roleId,
+    });
+  }
+
   if (query.storeName) {
     andConditions.push({
       store: { name: { contains: query.storeName, mode: "insensitive" } },
+    });
+  }
+
+  if (query.storeId) {
+    andConditions.push({
+      storeId: query.storeId,
     });
   }
 

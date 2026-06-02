@@ -57,6 +57,21 @@ export const findStores = async (
   });
 };
 
+export const findStoreOptions = async (db: TPrisma = prisma) => {
+  return await db.store.findMany({
+    where: {
+      deletedAt: null,
+    },
+    select: {
+      id: true,
+      name: true,
+    },
+    orderBy: {
+      name: "asc",
+    },
+  });
+};
+
 export const countStores = async (
   where: StoreWhereInput,
   db: TPrisma = prisma

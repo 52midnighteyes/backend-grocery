@@ -11,10 +11,6 @@ export const buildStoreWhere = (query: TGetStoresQuery): StoreWhereInput => {
 
   const andConditions: StoreWhereInput[] = [];
 
-  if (query.id) {
-    andConditions.push({ id: query.id });
-  }
-
   if (query.q) {
     andConditions.push({
       OR: [{ name: { contains: query.q, mode: "insensitive" } }],
@@ -24,24 +20,6 @@ export const buildStoreWhere = (query: TGetStoresQuery): StoreWhereInput => {
   if (query.name) {
     andConditions.push({
       name: { contains: query.name, mode: "insensitive" },
-    });
-  }
-
-  if (query.createdFrom || query.createdTo) {
-    andConditions.push({
-      createdAt: {
-        gte: query.createdFrom,
-        lte: query.createdTo,
-      },
-    });
-  }
-
-  if (query.updatedFrom || query.updatedTo) {
-    andConditions.push({
-      updatedAt: {
-        gte: query.updatedFrom,
-        lte: query.updatedTo,
-      },
     });
   }
 

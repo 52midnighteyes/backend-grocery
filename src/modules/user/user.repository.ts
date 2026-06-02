@@ -201,6 +201,31 @@ export const findAdminAccounts = async (
   });
 };
 
+export const findStoreDashboardAdmins = async (
+  where: UserWhereInput,
+  db: TPrisma = prisma
+) => {
+  return await db.user.findMany({
+    where,
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      avatar: true,
+      isVerified: true,
+      role: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+    orderBy: {
+      name: "asc",
+    },
+  });
+};
+
 export const countAdminAccounts = async (
   where: UserWhereInput,
   db: TPrisma = prisma

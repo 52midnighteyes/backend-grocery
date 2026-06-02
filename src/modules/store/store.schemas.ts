@@ -8,11 +8,6 @@ const optionalNumberQuery = z.preprocess(
   z.coerce.number().int().positive().optional()
 );
 
-const optionalDateQuery = z.preprocess(
-  emptyStringToUndefined,
-  z.coerce.date().optional()
-);
-
 export const storeIdParamSchema = z.object({
   id: z.uuid({ error: "Store ID is invalid" }),
 });
@@ -29,16 +24,8 @@ const longitudeSchema = z.coerce
 
 export const getStoresQuerySchema = z
   .object({
-    id: z.preprocess(
-      emptyStringToUndefined,
-      z.uuid({ error: "Store ID is invalid" }).optional()
-    ),
     q: z.preprocess(emptyStringToUndefined, z.string().trim().optional()),
     name: z.preprocess(emptyStringToUndefined, z.string().trim().optional()),
-    createdFrom: optionalDateQuery,
-    createdTo: optionalDateQuery,
-    updatedFrom: optionalDateQuery,
-    updatedTo: optionalDateQuery,
     sortBy: z
       .enum(["name", "createdAt", "updatedAt"])
       .optional()
@@ -47,26 +34,6 @@ export const getStoresQuerySchema = z
     page: optionalNumberQuery.default(1),
     limit: optionalNumberQuery.default(10),
   })
-  .refine(
-    (data) =>
-      !data.createdFrom ||
-      !data.createdTo ||
-      data.createdFrom <= data.createdTo,
-    {
-      message: "createdFrom must be before createdTo",
-      path: ["createdFrom"],
-    }
-  )
-  .refine(
-    (data) =>
-      !data.updatedFrom ||
-      !data.updatedTo ||
-      data.updatedFrom <= data.updatedTo,
-    {
-      message: "updatedFrom must be before updatedTo",
-      path: ["updatedFrom"],
-    }
-  )
   .transform((data) => ({
     ...data,
     limit: Math.min(data.limit, 100),

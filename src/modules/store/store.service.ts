@@ -6,6 +6,7 @@ import {
   findStoreById,
   findStoreByName,
   findStoreByNameExceptId,
+  findStoreOptions,
   findStores,
   softDeleteStore,
   updateStore,
@@ -37,6 +38,10 @@ export const getStoresService = async (params: TGetStoresQuery) => {
     data: stores,
     meta: buildPaginationMeta(page, limit, total),
   };
+};
+
+export const getStoreOptionsService = async () => {
+  return await findStoreOptions();
 };
 
 export const getStoreByIdService = async (id: string) => {

@@ -25,7 +25,7 @@ export const hasAdminLoginPermission = (user: {
   };
 }) => {
   return user.role.rolePermissions.some(
-    (rolePermission) => rolePermission.permission.name === "admin:login",
+    (rolePermission) => rolePermission.permission.name === "admin:login"
   );
 };
 
@@ -37,10 +37,10 @@ export const hasPermission = (
       };
     }[];
   },
-  permissionName: string,
+  permissionName: string
 ) => {
   return subject.rolePermissions.some(
-    (rolePermission) => rolePermission.permission.name === permissionName,
+    (rolePermission) => rolePermission.permission.name === permissionName
   );
 };
 
@@ -56,7 +56,7 @@ export const assertAdminAccess = async (userId: string) => {
 };
 
 export const buildAdminTokenPayload = (
-  user: TAdminAuthTokenPayloadSource,
+  user: TAdminAuthTokenPayloadSource
 ): TJwtTokenPayload => {
   return {
     id: user.id,
@@ -69,7 +69,7 @@ export const buildAdminTokenPayload = (
 };
 
 export const buildAdminSession = (
-  user: TAdminAuthTokenPayloadSource,
+  user: TAdminAuthTokenPayloadSource
 ): TAdminSession => {
   return {
     id: user.id,
@@ -91,9 +91,9 @@ export const buildAdminSession = (
 };
 
 export const sanitizeAdminAuthUser = <
-  TUser extends TAdminAuthUserWithSensitiveFields | null,
+  TUser extends TAdminAuthUserWithSensitiveFields | null
 >(
-  user: TUser,
+  user: TUser
 ) => {
   if (!user) return null;
 
@@ -103,7 +103,7 @@ export const sanitizeAdminAuthUser = <
 
 export const setAdminAuthCookies = (
   res: Response,
-  payload: TJwtTokenPayload,
+  payload: TJwtTokenPayload
 ): void => {
   const accessToken = Jwt.sign(payload, ADMIN_ACCESS_TOKEN_SECRET, {
     expiresIn: "15m",

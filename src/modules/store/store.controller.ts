@@ -3,6 +3,7 @@ import {
   createStoreService,
   deleteStoreService,
   getStoreByIdService,
+  getStoreOptionsService,
   getStoresService,
   updateStoreService,
 } from "./store.service.js";
@@ -27,6 +28,23 @@ export const getStoresController = async (
       message: "Stores fetched successfully",
       data: result.data,
       meta: result.meta,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getStoreOptionsController = async (
+  _req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const stores = await getStoreOptionsService();
+
+    return res.status(200).json({
+      message: "Store options fetched successfully",
+      data: stores,
     });
   } catch (error) {
     next(error);

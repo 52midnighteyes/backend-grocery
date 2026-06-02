@@ -18,8 +18,8 @@ export const RESET_TOKEN_SECRET = getRequiredEnv("RESET_TOKEN_SECRET");
 export const PEPPER = getRequiredEnv("PEPPER");
 export const MAILTRAP_TOKEN = getRequiredEnv("MAILTRAP_TOKEN");
 export const ADMIN_ACCESS_TOKEN_SECRET = getRequiredEnv(
-  "ADMIN_ACCESS_TOKEN_SECRET",
+  "ADMIN_ACCESS_TOKEN_SECRET"
 );
 export const ADMIN_REFRESH_TOKEN_SECRET = getRequiredEnv(
-  "ADMIN_REFRESH_TOKEN_SECRET",
+  "ADMIN_REFRESH_TOKEN_SECRET"
 );
