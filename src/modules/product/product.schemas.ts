@@ -1,0 +1,108 @@
+import * as z from "zod";
+
+const emptyStringToUndefined = (value: unknown) =>
+  value === "" ? undefined : value;
+
+const optionalNumberQuery = z.preprocess(
+  emptyStringToUndefined,
+  z.coerce.number().int().positive().optional(),
+);
+
+const optionalNonNegativeNumberQuery = z.preprocess(
+  emptyStringToUndefined,
+  z.coerce.number().int().nonnegative().optional(),
+);
+
+const optionalBooleanQuery = z.preprocess((value) => {
+  if (value === "") return undefined;
+  if (value === "true") return true;
+  if (value === "false") return false;
+  return value;
+}, z.coerce.boolean().optional());
+
+export const productSlugParamSchema = z.object({
+  slug: z.string().min(1, "Product slug is required").trim(),
+});
+
+export const getProductsQuerySchema = z
+  .object({
+    q: z.preprocess(emptyStringToUndefined, z.string().trim().optional()),
+    name: z.preprocess(emptyStringToUndefined, z.string().trim().optional()),
+    slug: z.preprocess(emptyStringToUndefined, z.string().trim().optional()),
+    sku: z.preprocess(emptyStringToUndefined, z.string().trim().optional()),
+    brand: z.preprocess(emptyStringToUndefined, z.string().trim().optional()),
+    variant: z.preprocess(emptyStringToUndefined, z.string().trim().optional()),
+    size: z.preprocess(emptyStringToUndefined, z.string().trim().optional()),
+    categoryName: z.preprocess(
+      emptyStringToUndefined,
+      z.string().trim().optional(),
+    ),
+    categoryId: z.preprocess(
+      emptyStringToUndefined,
+      z.uuid({ error: "Category ID is invalid" }).optional(),
+    ),
+    storeId: z.preprocess(
+      emptyStringToUndefined,
+      z.uuid({ error: "Store ID is invalid" }).optional(),
+    ),
+    minPrice: optionalNonNegativeNumberQuery,
+    maxPrice: optionalNonNegativeNumberQuery,
+    minStock: optionalNonNegativeNumberQuery,
+    maxStock: optionalNonNegativeNumberQuery,
+    inStock: optionalBooleanQuery,
+    sortBy: z
+      .enum([
+        "name",
+        "slug",
+        "sku",
+        "brand",
+        "price",
+        "categoryName",
+        "createdAt",
+        "updatedAt",
+      ])
+      .optional()
+      .default("createdAt"),
+    sortOrder: z.enum(["asc", "desc"]).optional().default("desc"),
+    page: optionalNumberQuery.default(1),
+    limit: optionalNumberQuery.default(10),
+  })
+  .refine(
+    (data) =>
+      data.minPrice === undefined ||
+      data.maxPrice === undefined ||
+      data.minPrice <= data.maxPrice,
+    {
+      message: "Minimum price cannot be greater than maximum price",
+      path: ["minPrice"],
+    },
+  )
+  .refine(
+    (data) =>
+      data.minStock === undefined ||
+      data.maxStock === undefined ||
+      data.minStock <= data.maxStock,
+    {
+      message: "Minimum stock cannot be greater than maximum stock",
+      path: ["minStock"],
+    },
+  )
+  .transform((data) => ({
+    ...data,
+    limit: Math.min(data.limit, 100),
+  }));
+
+export const getProductBySlugQuerySchema = z.object({
+  includeStocks: optionalBooleanQuery.default(false),
+  inStock: optionalBooleanQuery,
+  storeId: z.preprocess(
+    emptyStringToUndefined,
+    z.uuid({ error: "Store ID is invalid" }).optional(),
+  ),
+});
+
+export type TProductSlugParam = z.infer<typeof productSlugParamSchema>;
+export type TGetProductsQuery = z.infer<typeof getProductsQuerySchema>;
+export type TGetProductBySlugQuery = z.infer<
+  typeof getProductBySlugQuerySchema
+>;
