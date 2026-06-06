@@ -1,6 +1,18 @@
 import type { Request, Response, NextFunction } from "express";
 import { cloudinaryUpload } from "../../libs/cloudinary/cloudinary.lib.js";
 import { setAuthCookies } from "./auth.helper.js";
+import type {
+    TRegisterBody,
+    TVerifyEmailBody,
+    TVerifyEmailQuery,
+    TLoginBody,
+    TEmailBody,
+    TResetPasswordBody,
+    TResetPasswordQuery,
+    TUpdateProfileBody,
+    TChangeEmailBody,
+    TChangePasswordBody,
+} from "./auth.validation.js";
 import {
     registerService,
     verifyEmailService,
@@ -19,7 +31,7 @@ import {
 
 export const register = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { name, email, referralCode } = req.body;
+        const { name, email, referralCode } = req.validated?.body as TRegisterBody;
         await registerService(name, email, referralCode);
         res.status(201).json({ message: "Registrasi berhasil, cek email untuk verifikasi" });
     } catch (error) { next(error); }
@@ -27,8 +39,8 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
 
 export const verifyEmail = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { token } = req.query as { token: string };
-        const { password } = req.body;
+        const { token } = req.validated?.query as TVerifyEmailQuery;
+        const { password } = req.validated?.body as TVerifyEmailBody;
         await verifyEmailService(token, password);
         res.status(200).json({ message: "Email berhasil diverifikasi, silakan login" });
     } catch (error) { next(error); }
@@ -36,7 +48,7 @@ export const verifyEmail = async (req: Request, res: Response, next: NextFunctio
 
 export const verifyEmailChange = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { token } = req.query as { token: string };
+        const { token } = req.validated?.query as TVerifyEmailQuery;
         await verifyEmailChangeService(token);
         res.status(200).json({ message: "Email berhasil diperbarui" });
     } catch (error) { next(error); }
@@ -44,7 +56,7 @@ export const verifyEmailChange = async (req: Request, res: Response, next: NextF
 
 export const resendVerification = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { email } = req.body;
+        const { email } = req.validated?.body as TEmailBody;
         await resendVerificationService(email);
         res.status(200).json({ message: "Email verifikasi telah dikirim ulang" });
     } catch (error) { next(error); }
@@ -52,7 +64,7 @@ export const resendVerification = async (req: Request, res: Response, next: Next
 
 export const login = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { email, password } = req.body;
+        const { email, password } = req.validated?.body as TLoginBody;
         const payload = await loginService(email, password);
         setAuthCookies(res, payload);
         res.status(200).json({ message: "Login berhasil" });
@@ -68,7 +80,7 @@ export const logout = (_req: Request, res: Response, next: NextFunction) => {
 
 export const forgotPassword = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { email } = req.body;
+        const { email } = req.validated?.body as TEmailBody;
         await forgotPasswordService(email);
         res.status(200).json({ message: "Jika email terdaftar, link reset akan dikirimkan" });
     } catch (error) { next(error); }
@@ -76,8 +88,8 @@ export const forgotPassword = async (req: Request, res: Response, next: NextFunc
 
 export const resetPassword = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { token } = req.query as { token: string };
-        const { password } = req.body;
+        const { token } = req.validated?.query as TResetPasswordQuery;
+        const { password } = req.validated?.body as TResetPasswordBody;
         await resetPasswordService(token, password);
         res.status(200).json({ message: "Password berhasil direset, silakan login" });
     } catch (error) { next(error); }
@@ -92,7 +104,7 @@ export const getProfile = async (req: Request, res: Response, next: NextFunction
 
 export const updateProfile = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { name } = req.body;
+        const { name } = req.validated?.body as TUpdateProfileBody;
         let avatarUrl: string | undefined;
         if (req.file) {
             const result = await cloudinaryUpload({ file: req.file, id: req.user!.id, type: "AVATAR" });
@@ -105,7 +117,7 @@ export const updateProfile = async (req: Request, res: Response, next: NextFunct
 
 export const changeEmail = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { email } = req.body;
+        const { email } = req.validated?.body as TChangeEmailBody;
         await changeEmailService(req.user!.id, email);
         res.status(200).json({ message: "Email diperbarui, cek email baru untuk verifikasi" });
     } catch (error) { next(error); }
@@ -113,7 +125,7 @@ export const changeEmail = async (req: Request, res: Response, next: NextFunctio
 
 export const changePassword = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { oldPassword, newPassword } = req.body;
+        const { oldPassword, newPassword } = req.validated?.body as TChangePasswordBody;
         await changePasswordService(req.user!.id, oldPassword, newPassword);
         res.status(200).json({ message: "Password berhasil diperbarui" });
     } catch (error) { next(error); }

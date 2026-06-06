@@ -13,6 +13,7 @@ import authRouter from "./modules/auth/auth.router.js";
 import roleRoutes from "./modules/role/role.routes.js";
 import storeRoutes from "./modules/store/store.routes.js";
 import userManagementRoutes from "./modules/user-management/userManagement.routes.js";
+import CartRouter from "./modules/cart/cart.route.js";
 
 const app = express();
 
@@ -27,6 +28,7 @@ app.use(
 );
 app.use(helmet());
 app.use(express.json());
+app.use("/api/cart", CartRouter);
 
 app.use((req: Request, _res: Response, next: NextFunction) => {
   console.log("===== Incoming Request =====");
