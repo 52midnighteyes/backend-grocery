@@ -1,9 +1,6 @@
 import { AppError } from "../../class/appError.js";
 import { buildPaginationMeta } from "../../helper/pagination.js";
-import {
-  buildCategoryOrderBy,
-  buildCategoryWhere,
-} from "./category.helper.js";
+import { buildCategoryOrderBy, buildCategoryWhere } from "./category.helper.js";
 import {
   countCategories,
   findCategories,

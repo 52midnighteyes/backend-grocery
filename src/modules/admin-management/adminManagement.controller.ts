@@ -40,6 +40,7 @@ export const getAdminAccountsController = async (
   try {
     const result = await getAdminAccountsService(
       req.validated?.query as TGetAdminAccountsQuery,
+      req.user!.id,
     );
 
     return res.status(200).json({
@@ -59,7 +60,7 @@ export const getAdminAccountController = async (
 ) => {
   try {
     const { id } = req.validated?.params as TAdminAccountIdParam;
-    const adminAccount = await getAdminAccountService(id);
+    const adminAccount = await getAdminAccountService(id, req.user!.id);
 
     return res.status(200).json({
       message: "Admin account fetched successfully",

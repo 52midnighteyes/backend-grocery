@@ -70,11 +70,21 @@ export const createAdminAccountService = async (
 
 export const getAdminAccountsService = async (
   params: TGetAdminAccountsQuery,
+  requesterId: string,
 ) => {
   const page = params.page;
   const limit = params.limit;
   const skip = (page - 1) * limit;
-  const where = buildAdminAccountWhere(params);
+  let where = buildAdminAccountWhere(params);
+
+  const requester = await findAdminAccountById(requesterId);
+  if (requester?.role.name === "storeAdmin" && requester.storeId) {
+    where = {
+      ...where,
+      storeId: requester.storeId,
+    };
+  }
+
   const orderBy = buildAdminAccountOrderBy(params);
 
   const [adminAccounts, total] = await Promise.all([
@@ -94,9 +104,21 @@ export const getAdminAccountsService = async (
   };
 };
 
-export const getAdminAccountService = async (id: string) => {
+export const getAdminAccountService = async (
+  id: string,
+  requesterId: string,
+) => {
   const adminAccount = await findAdminAccountById(id);
   if (!adminAccount) throw new AppError(404, "Admin account was not found");
+
+  const requester = await findAdminAccountById(requesterId);
+  if (
+    requester?.role.name === "storeAdmin" &&
+    requester.storeId &&
+    adminAccount.storeId !== requester.storeId
+  ) {
+    throw new AppError(404, "Admin account was not found");
+  }
 
   return sanitizeAdminAccount(adminAccount);
 };
