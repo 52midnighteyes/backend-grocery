@@ -1,14 +1,9 @@
 import {
-  ProductStockFindManyArgs,
   ProductStockWhereInput,
 } from "../../../generated/prisma/models.js";
 import { prisma } from "../../libs/prisma/prisma.lib.js";
 import { TPrisma } from "../../libs/prisma/prisma.types.js";
-
-type TFindManyStoreStockOptions = Pick<
-  ProductStockFindManyArgs,
-  "orderBy" | "skip" | "take"
->;
+import type { TFindManyStoreStockOptions } from "./stock.models.js";
 
 export const findStoreStocks = async (
   where: ProductStockWhereInput,

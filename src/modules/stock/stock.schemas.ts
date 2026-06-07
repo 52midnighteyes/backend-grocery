@@ -15,10 +15,11 @@ const optionalNonNegativeNumberQuery = z.preprocess(
 
 const optionalBooleanQuery = z.preprocess((value) => {
   if (value === "") return undefined;
+  if (typeof value === "boolean") return value;
   if (value === "true") return true;
   if (value === "false") return false;
   return value;
-}, z.coerce.boolean().optional());
+}, z.boolean().optional());
 
 export const storeStockParamSchema = z.object({
   storeId: z.uuid({ error: "Store ID is invalid" }),

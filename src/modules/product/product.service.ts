@@ -6,7 +6,6 @@ import {
 } from "./product.helper.js";
 import {
   countProducts,
-  findAdminProductBySlug,
   findProductBySlug,
   findProducts,
 } from "./product.repository.js";
@@ -42,13 +41,6 @@ export const getProductBySlugService = async (
   query: TGetProductBySlugQuery,
 ) => {
   const product = await findProductBySlug(slug, query);
-  if (!product) throw new AppError(404, "Product was not found");
-
-  return product;
-};
-
-export const getAdminProductBySlugService = async (slug: string) => {
-  const product = await findAdminProductBySlug(slug);
   if (!product) throw new AppError(404, "Product was not found");
 
   return product;

@@ -3,14 +3,16 @@ import {
   ProductWhereInput,
 } from "../../../generated/prisma/models.js";
 import type {
+  TProductStockFilterQuery,
+  TProductStockWhere,
+} from "./product.models.js";
+import type {
   TGetProductBySlugQuery,
   TGetProductsQuery,
 } from "./product.schemas.js";
 
-const buildStockWhere = (
-  query: Pick<TGetProductsQuery, "storeId" | "minStock" | "maxStock" | "inStock">,
-) => {
-  const where: NonNullable<ProductWhereInput["stocks"]>["some"] = {
+const buildStockWhere = (query: TProductStockFilterQuery) => {
+  const where: TProductStockWhere = {
     deletedAt: null,
   };
 
@@ -135,7 +137,7 @@ export const buildProductOrderBy = (
 export const buildProductStocksWhere = (
   query: TGetProductBySlugQuery,
 ) => {
-  const where: NonNullable<ProductWhereInput["stocks"]>["some"] = {
+  const where: TProductStockWhere = {
     deletedAt: null,
     store: {
       deletedAt: null,

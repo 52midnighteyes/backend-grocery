@@ -1,6 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
 import {
-  getAdminProductBySlugService,
   getProductBySlugService,
   getProductsService,
 } from "./product.service.js";
@@ -44,24 +43,6 @@ export const getProductBySlugController = async (
 
     return res.status(200).json({
       message: "Product fetched successfully",
-      data: product,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-export const getAdminProductBySlugController = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
-  try {
-    const { slug } = req.validated?.params as TProductSlugParam;
-    const product = await getAdminProductBySlugService(slug);
-
-    return res.status(200).json({
-      message: "Admin product fetched successfully",
       data: product,
     });
   } catch (error) {
