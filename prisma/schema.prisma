@@ -204,7 +204,7 @@ model Category {
 model Product {
   id         String    @id @default(uuid())
   name       String    @unique
-  slug       String?   @unique
+  slug       String   @unique
   categoryId String @map("category_id")
   brand     String?
   variant   String?
