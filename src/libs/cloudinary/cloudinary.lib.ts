@@ -4,6 +4,7 @@ import {
   type UploadApiResponse,
 } from "cloudinary";
 import { Readable } from "node:stream";
+import { randomUUID } from "node:crypto";
 import { AppError } from "../../class/appError.js";
 import {
   CLOUDINARY_API_KEY,
@@ -34,6 +35,7 @@ export const cloudinaryUpload = (
       params.type === "AVATAR"
         ? `${BASE_PARENT_FOLDER}/USERS/${params.id}/AVATARS`
         : `${BASE_PARENT_FOLDER}/PRODUCTS/${params.id}`;
+    const uploadId = `${params.id}-${Date.now()}-${randomUUID()}`;
 
     let uploadOptions: UploadApiOptions;
 
@@ -53,9 +55,9 @@ export const cloudinaryUpload = (
       case "PRODUCT":
         uploadOptions = {
           folder,
-          public_id: `${params.id}-${Date.now()}`,
+          public_id: uploadId,
           overwrite: false,
-          filename_override: `${params.id}-${Date.now()}`,
+          filename_override: uploadId,
           resource_type: "image",
           allowed_formats: ALLOWED_IMAGE_FORMATS,
         };
