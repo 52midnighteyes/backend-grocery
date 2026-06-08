@@ -5,13 +5,13 @@ import {
   createOrderSchema,
   getOrdersQuerySchema,
   orderParamsSchema,
+  updateOrderStatusSchema,
 } from "./order.schemas.js";
 import {
   createOrderController,
   getOrdersController,
   getOrderDetailController,
-  cancelOrderController,
-  confirmOrderController,
+  updateOrderStatusController,
 } from "./order.controller.js";
 
 const router = Router();
@@ -40,20 +40,13 @@ router.post(
   createOrderController,
 );
 
-// PATCH /api/orders/:orderId/cancel - user cancel order
+// PATCH /api/orders/:orderId - update status order oleh user (cancel / confirmed)
 router.patch(
-  "/:orderId/cancel",
+  "/:orderId",
   verifyAccessToken,
   validateSchema(orderParamsSchema, "params"),
-  cancelOrderController,
-);
-
-// PATCH /api/orders/:orderId/confirm - user konfirmasi pesanan diterima
-router.patch(
-  "/:orderId/confirm",
-  verifyAccessToken,
-  validateSchema(orderParamsSchema, "params"),
-  confirmOrderController,
+  validateSchema(updateOrderStatusSchema, "body"),
+  updateOrderStatusController,
 );
 
 export default router;

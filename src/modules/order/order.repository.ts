@@ -184,7 +184,18 @@ export const findTransactionById = async (
     include: {
       items: {
         where: { deletedAt: null },
-        include: { product: true, discount: true },
+        include: {
+          product: {
+            include: {
+              images: {
+                where: { deletedAt: null },
+                orderBy: { position: "asc" },
+                take: 1,
+              },
+            },
+          },
+          discount: true,
+        },
       },
       store: true,
       voucher: true,

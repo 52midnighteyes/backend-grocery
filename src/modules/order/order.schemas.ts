@@ -45,6 +45,14 @@ export const orderParamsSchema = z.object({
   orderId: z.string().uuid("Order ID is not valid"),
 });
 
+// Status yang boleh diubah oleh user (bukan admin)
+export const updateOrderStatusSchema = z.object({
+  status: z.enum(["cancel", "confirmed"], {
+    error: "Status must be either 'cancel' or 'confirmed'",
+  }),
+});
+
 export type TCreateOrderSchema = z.infer<typeof createOrderSchema>;
 export type TGetOrdersQuerySchema = z.infer<typeof getOrdersQuerySchema>;
 export type TOrderParamsSchema = z.infer<typeof orderParamsSchema>;
+export type TUpdateOrderStatusSchema = z.infer<typeof updateOrderStatusSchema>;

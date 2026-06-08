@@ -71,9 +71,9 @@ export const createOrderService = async (
           throw new AppError(400, `Invalid discount for product: ${stock.product.name}`);
         }
 
-        if (discount.type === "percentage" && discount.value) {
+        if (discount.type === DiscountType.percentage && discount.value) {
           itemTotal = itemTotal - Math.floor((itemTotal * discount.value) / 100);
-        } else if (discount.type === "nominal" && discount.value) {
+        } else if (discount.type === DiscountType.nominal && discount.value) {
           itemTotal = Math.max(0, itemTotal - discount.value * item.quantity);
         } else if (discount.type === DiscountType.buyXGetY) {
           const buyQty = discount.buyQuantity ?? 1;
@@ -241,7 +241,14 @@ export const getOrderDetailService = async (
   return order;
 };
 
-export const cancelOrderService = async (userId: string, orderId: string) => {
+// Menggabungkan cancel dan confirm menjadi satu service.
+// Status yang diizinkan untuk diubah oleh user: "cancel" dan "confirmed".
+// Backend yang handle validasi transisi status — bukan frontend.
+export const updateOrderStatusService = async (
+  userId: string,
+  orderId: string,
+  status: "cancel" | "confirmed",
+) => {
   return prisma.$transaction(async (tx) => {
     const order = await findTransactionById(orderId, tx);
 
@@ -253,42 +260,34 @@ export const cancelOrderService = async (userId: string, orderId: string) => {
       throw new AppError(403, "Forbidden");
     }
 
-    if (order.transactionStatus !== "waitingPayment") {
-      throw new AppError(400, "Order can only be cancelled before payment is made");
+    if (status === "cancel") {
+      if (order.transactionStatus !== "waitingPayment") {
+        throw new AppError(400, "Order can only be cancelled before payment is made");
+      }
+
+      await updateTransactionStatus(orderId, "cancel", tx);
+
+      // Kembalikan stok dan catat jurnal untuk setiap item
+      for (const item of order.items) {
+        await incrementProductStock(item.productId, order.storeId, item.quantity, tx);
+        await createStockHistory(
+          {
+            name: `Return - Order ${orderId} cancelled`,
+            productId: item.productId,
+            storeId: order.storeId,
+            type: "returnOut",
+          },
+          tx,
+        );
+      }
     }
 
-    await updateTransactionStatus(orderId, "cancel", tx);
+    if (status === "confirmed") {
+      if (order.transactionStatus !== "onDelivery") {
+        throw new AppError(400, "Order can only be confirmed after it has been shipped");
+      }
 
-    // Kembalikan stok dan catat jurnal untuk setiap item
-    for (const item of order.items) {
-      await incrementProductStock(item.productId, order.storeId, item.quantity, tx);
-      await createStockHistory(
-        {
-          name: `Return - Order ${orderId} cancelled`,
-          productId: item.productId,
-          storeId: order.storeId,
-          type: "returnOut",
-        },
-        tx,
-      );
+      await updateTransactionStatus(orderId, "confirmed", tx);
     }
   });
-};
-
-export const confirmOrderService = async (userId: string, orderId: string) => {
-  const order = await findTransactionById(orderId);
-
-  if (!order) {
-    throw new AppError(404, "Order not found");
-  }
-
-  if (order.customerId !== userId) {
-    throw new AppError(403, "Forbidden");
-  }
-
-  if (order.transactionStatus !== "onDelivery") {
-    throw new AppError(400, "Order can only be confirmed after it has been shipped");
-  }
-
-  await updateTransactionStatus(orderId, "confirmed");
 };

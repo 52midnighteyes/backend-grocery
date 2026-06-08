@@ -3,13 +3,13 @@ import type {
   TCreateOrderSchema,
   TGetOrdersQuerySchema,
   TOrderParamsSchema,
+  TUpdateOrderStatusSchema,
 } from "./order.schemas.js";
 import {
   createOrderService,
   getOrdersService,
   getOrderDetailService,
-  cancelOrderService,
-  confirmOrderService,
+  updateOrderStatusService,
 } from "./order.service.js";
 
 export const createOrderController = async (
@@ -63,7 +63,8 @@ export const getOrderDetailController = async (
   }
 };
 
-export const cancelOrderController = async (
+// Satu controller untuk handle perubahan status oleh user (cancel dan confirmed).
+export const updateOrderStatusController = async (
   req: Request,
   res: Response,
   next: NextFunction,
@@ -71,27 +72,11 @@ export const cancelOrderController = async (
   try {
     const { id: userId } = req.user!;
     const { orderId } = req.validated?.params as TOrderParamsSchema;
+    const { status } = req.validated?.body as TUpdateOrderStatusSchema;
 
-    await cancelOrderService(userId, orderId);
+    await updateOrderStatusService(userId, orderId, status);
 
-    res.status(200).json({ message: "Order cancelled successfully" });
-  } catch (error) {
-    next(error);
-  }
-};
-
-export const confirmOrderController = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
-  try {
-    const { id: userId } = req.user!;
-    const { orderId } = req.validated?.params as TOrderParamsSchema;
-
-    await confirmOrderService(userId, orderId);
-
-    res.status(200).json({ message: "Order confirmed successfully" });
+    res.status(200).json({ message: `Order ${status} successfully` });
   } catch (error) {
     next(error);
   }
