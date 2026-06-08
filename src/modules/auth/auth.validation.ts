@@ -64,6 +64,11 @@ export const changePasswordBodySchema = z.object({
     path: ["confirmPassword"],
 });
 
+export const googleAuthBodySchema = z.object({
+    credential: z.string().min(1, "Credential Google wajib diisi"),
+});
+
+
 export type TRegisterBody = z.infer<typeof registerBodySchema>;
 export type TVerifyEmailBody = z.infer<typeof verifyEmailBodySchema>;
 export type TVerifyEmailQuery = z.infer<typeof verifyEmailQuerySchema>;
@@ -74,3 +79,4 @@ export type TResetPasswordQuery = z.infer<typeof resetPasswordQuerySchema>;
 export type TUpdateProfileBody = z.infer<typeof updateProfileBodySchema>;
 export type TChangeEmailBody = z.infer<typeof changeEmailBodySchema>;
 export type TChangePasswordBody = z.infer<typeof changePasswordBodySchema>;
+export type TGoogleAuthBody = z.infer<typeof googleAuthBodySchema>;

@@ -7,7 +7,8 @@ import argon2 from "argon2";
 import Jwt from "jsonwebtoken";
 import type { Response } from "express";
 import { signVerifyToken, clearAuthCookies, signResetToken } from "./auth.helper.js";
-
+import { OAuth2Client } from "google-auth-library";
+import { GOOGLE_CLIENT_ID } from "../../config/config.js";
 import {
     findUserByEmail,
     findRoleByName,
@@ -22,7 +23,9 @@ import {
     createForgotPasswordToken,
     findForgotPasswordToken,
     invalidateForgotPasswordToken,
-    findUserById
+    findUserById,
+    createGoogleUser,
+    findUserByGoogleId
 } from "./auth.repository.js"
 import type { TJwtTokenPayload } from "../../middlewares/tokenVerification/tokenVerification.schema.js";
 import { randomBytes } from "crypto";
@@ -120,7 +123,8 @@ export const logoutService = (res: Response) => {
 
 export const forgotPasswordService = async (email: string) => {
     const user = await findUserByEmail(email);
-    if (!user || !user.isVerified) return;
+    if (!user || !user.isVerified || user.googleId) return;
+    
 
     const token = signResetToken(user.id, email);
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
@@ -161,7 +165,9 @@ export const getProfileService = async (userId: string) => {
         role: user.role.name,
         isVerified: user.isVerified,
         referralCode: user.referralCode,
+        googleId: user.googleId,
     };
+
 };
 
 export const updateProfileService = async (
@@ -227,3 +233,37 @@ export const refreshTokenService = async (userId: string): Promise<TJwtTokenPayl
     };
 };
 
+const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
+
+export const googleAuthService = async (credential: string): Promise<TJwtTokenPayload> => {
+    const ticket = await googleClient.verifyIdToken({
+        idToken: credential,
+        audience: GOOGLE_CLIENT_ID,
+    });
+    const profile = ticket.getPayload();
+    if (!profile?.email) throw new AppError(401, "Token Google tidak valid");
+
+    const { sub: googleId, email, name } = profile;
+
+    let user = await findUserByGoogleId(googleId);
+
+    if (!user) {
+        const existing = await findUserByEmail(email);
+        if (existing) throw new AppError(400, "Email sudah terdaftar, silakan login");
+
+        const role = await findRoleByName("user");
+        if (!role) throw new AppError(500, "Role tidak ditemukan");
+
+        const newReferralCode = randomBytes(4).toString("hex").toUpperCase();
+        user = await createGoogleUser(name ?? email, email, googleId, role.id, newReferralCode);
+    }
+
+    return {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role.name as "superAdmin" | "storeAdmin" | "user",
+        avatarUrl: user.avatar,
+        isVerified: user.isVerified,
+    };
+};

@@ -123,6 +123,7 @@ model User {
   name         String
   roleId       String @map("role_id")
   email        String    @unique
+  googleId String? @unique @map("google_id")
   password     String?
   avatar       String?
   storeId String? @map("store_id")
