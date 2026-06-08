@@ -27,3 +27,7 @@ export const findForgotPasswordToken = (token:string) => prisma.forgotPassword.f
 export const invalidateForgotPasswordToken = (id:string) => prisma.forgotPassword.update({where: {id}, data: {deletedAt: new Date()}});
 
 export const findUserByEmailWithRole = (email: string) => prisma.user.findUnique({ where: { email }, include: { role: true } });
+
+export const findUserByGoogleId = (googleId: string) => prisma.user.findUnique({ where: { googleId }, include: { role: true } });
+
+export const createGoogleUser = (name: string, email: string, googleId: string, roleId: string, referralCode: string) => prisma.user.create({data: { name, email, googleId, roleId, referralCode, isVerified: true },include: { role: true },});

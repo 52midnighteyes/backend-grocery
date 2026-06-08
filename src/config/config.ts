@@ -17,3 +17,4 @@ export const VERIFY_TOKEN_SECRET = getRequiredEnv("VERIFY_TOKEN_SECRET");
 export const RESET_TOKEN_SECRET = getRequiredEnv("RESET_TOKEN_SECRET");
 export const PEPPER = getRequiredEnv("PEPPER");
 export const MAILTRAP_TOKEN = getRequiredEnv("MAILTRAP_TOKEN");
+export const GOOGLE_CLIENT_ID = getRequiredEnv("GOOGLE_CLIENT_ID");

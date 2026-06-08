@@ -13,6 +13,7 @@ import {
     updateProfileBodySchema,
     changeEmailBodySchema,
     changePasswordBodySchema,
+    googleAuthBodySchema,
 } from "./auth.validation.js";
 import {
     register,
@@ -28,6 +29,7 @@ import {
     changeEmail,
     changePassword,
     refreshToken,
+    googleAuth,
 } from "./auth.controller.js";
 
 const router = Router();
@@ -45,5 +47,6 @@ router.patch("/profile", verifyAccessToken, uploadAvatar.single("avatar"), valid
 router.patch("/email", verifyAccessToken, validateSchema(changeEmailBodySchema, "body"), changeEmail);
 router.patch("/password", verifyAccessToken, validateSchema(changePasswordBodySchema, "body"), changePassword);
 router.post("/refresh", verifyRefreshToken, refreshToken);
+router.post("/google", validateSchema(googleAuthBodySchema, "body"), googleAuth);
 
 export default router;

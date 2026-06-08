@@ -12,6 +12,7 @@ import type {
     TUpdateProfileBody,
     TChangeEmailBody,
     TChangePasswordBody,
+    TGoogleAuthBody
 } from "./auth.validation.js";
 import {
     registerService,
@@ -27,6 +28,7 @@ import {
     changeEmailService,
     changePasswordService,
     refreshTokenService,
+    googleAuthService,
 } from "./auth.service.js";
 
 export const register = async (req: Request, res: Response, next: NextFunction) => {
@@ -136,5 +138,14 @@ export const refreshToken = async (req: Request, res: Response, next: NextFuncti
         const payload = await refreshTokenService(req.user!.id);
         setAuthCookies(res, payload);
         res.status(200).json({ message: "Token berhasil diperbarui" });
+    } catch (error) { next(error); }
+};
+
+export const googleAuth = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { credential } = req.validated?.body as TGoogleAuthBody;
+        const payload = await googleAuthService(credential);
+        setAuthCookies(res, payload);
+        res.status(200).json({ message: "Login berhasil" });
     } catch (error) { next(error); }
 };
