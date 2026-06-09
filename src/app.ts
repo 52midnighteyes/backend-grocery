@@ -21,6 +21,7 @@ import storeRoutes from "./modules/store/store.routes.js";
 import userManagementRoutes from "./modules/user-management/userManagement.routes.js";
 import cartRoutes from "./modules/cart/cart.routes.js";
 import orderRoutes from "./modules/order/order.routes.js";
+import geocodeRoutes from "./modules/geocode/geocode.routes.js";
 
 const app = express();
 
@@ -77,6 +78,7 @@ app.use("/api/categories", categoryRoutes);
 app.use("/api/stocks", stockRoutes);
 app.use("/api/roles", roleRoutes);
 app.use("/api/stores", storeRoutes);
+app.use("/api/geocode", geocodeRoutes);
 
 //route not found handler
 app.use((_req, _res, next) => {
