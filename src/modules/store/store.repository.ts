@@ -51,3 +51,24 @@ export const countStores = async (
 ) => {
   return await db.store.count({ where });
 };
+
+// Only stores that have coordinates can take part in nearest-store math.
+export const findStoresWithCoordinates = async (db: TPrisma = prisma) => {
+  return await db.store.findMany({
+    where: {
+      deletedAt: null,
+      latitude: { not: null },
+      longitude: { not: null },
+    },
+  });
+};
+
+// The fallback store used when the user denies location or is out of range.
+export const findMainStore = async (db: TPrisma = prisma) => {
+  return await db.store.findFirst({
+    where: {
+      isMain: true,
+      deletedAt: null,
+    },
+  });
+};

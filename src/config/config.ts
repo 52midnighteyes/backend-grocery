@@ -24,3 +24,5 @@ export const ADMIN_ACCESS_TOKEN_SECRET = getRequiredEnv(
 export const ADMIN_REFRESH_TOKEN_SECRET = getRequiredEnv(
   "ADMIN_REFRESH_TOKEN_SECRET"
 );
+export const OPENCAGE_API_KEY = getRequiredEnv("OPENCAGE_API_KEY");
+export const STORE_MAX_RADIUS_KM = getNumberEnv("STORE_MAX_RADIUS_KM", 50);
