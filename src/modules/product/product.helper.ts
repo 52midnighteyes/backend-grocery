@@ -5,6 +5,8 @@ import {
 import type {
   TProductStockFilterQuery,
   TProductStockWhere,
+  TStoreScopedProductStock,
+  TStoreScopedProductStore,
 } from "./product.models.js";
 import type {
   TGetProductBySlugQuery,
@@ -149,4 +151,92 @@ export const buildProductStocksWhere = (
   if (query.inStock === false) where.stock = { lte: 0 };
 
   return where;
+};
+
+export const buildStoreScopedProductWhere = (
+  storeId: string,
+  query: TGetProductsQuery,
+) => {
+  const where = buildProductWhere({
+    ...query,
+    storeId: undefined,
+    minStock: undefined,
+    maxStock: undefined,
+    inStock: undefined,
+  });
+
+  const hasStockFilter =
+    query.minStock !== undefined ||
+    query.maxStock !== undefined ||
+    typeof query.inStock === "boolean";
+
+  if (!hasStockFilter) return where;
+
+  const stockWhere = buildStockWhere({
+    storeId,
+    minStock: query.minStock,
+    maxStock: query.maxStock,
+    inStock: query.inStock,
+  });
+  const canMissingStockCountAsZero =
+    query.inStock === false ||
+    ((query.minStock === undefined || query.minStock <= 0) &&
+      (query.maxStock === undefined || query.maxStock >= 0));
+  const stockCondition: ProductWhereInput = canMissingStockCountAsZero
+    ? {
+        OR: [
+          {
+            stocks: {
+              some: stockWhere,
+            },
+          },
+          {
+            stocks: {
+              none: {
+                storeId,
+                deletedAt: null,
+              },
+            },
+          },
+        ],
+      }
+    : {
+        stocks: {
+          some: stockWhere,
+        },
+      };
+
+  where.AND = Array.isArray(where.AND)
+    ? [...where.AND, stockCondition]
+    : [stockCondition];
+
+  return where;
+};
+
+export const attachStoreStock = <
+  TProduct extends { stocks: TStoreScopedProductStock[] },
+>(
+  product: TProduct,
+  store: TStoreScopedProductStore,
+) => {
+  const { stocks, ...productData } = product;
+  const stock = stocks[0]?.stock ?? 0;
+
+  return {
+    ...productData,
+    storeStock: {
+      productStockId: stocks[0]?.id ?? null,
+      storeId: store.id,
+      stock,
+      isAvailable: stock > 0,
+      store: {
+        id: store.id,
+        name: store.name,
+        latitude: store.latitude,
+        longitude: store.longitude,
+      },
+      createdAt: stocks[0]?.createdAt ?? null,
+      updatedAt: stocks[0]?.updatedAt ?? null,
+    },
+  };
 };

@@ -7,13 +7,16 @@ import {
   assertProductGalleryPayload,
   assertProductImagePayload,
   cleanupUploadedProductImages,
+  deleteProductImagesFromCloudinary,
   getRemovedProductImageIds,
   getAdminProductScope,
   uploadProductImages,
 } from "./adminProduct.helper.js";
 import {
+  createProductStocks,
   createProductImages,
   createProduct,
+  findActiveStoreIds,
   findCategoryById,
   findAdminProductBySlug,
   findProductByName,
@@ -40,7 +43,7 @@ import type { TProductImageUploadFiles } from "./adminProduct.models.js";
 
 export const getAdminProductsService = async (
   params: TGetProductsQuery,
-  requesterId: string,
+  requesterId: string
 ) => {
   const scope = await getAdminProductScope(requesterId);
 
@@ -52,7 +55,7 @@ export const getAdminProductsService = async (
 
 export const createProductService = async (
   params: TCreateProductBody,
-  files: TProductImageUploadFiles,
+  files: TProductImageUploadFiles
 ) => {
   assertProductImagePayload(files, params.positions);
 
@@ -60,7 +63,8 @@ export const createProductService = async (
   if (!category) throw new AppError(404, "Category was not found");
 
   const existingProduct = await findProductByName(params.name);
-  if (existingProduct) throw new AppError(400, "Product name is already in use");
+  if (existingProduct)
+    throw new AppError(400, "Product name is already in use");
 
   const sku = generateSku({
     category: category.name,
@@ -77,12 +81,12 @@ export const createProductService = async (
   const { images, uploadedPublicIds } = await uploadProductImages(
     files,
     params.positions,
-    slug,
+    slug
   );
 
   try {
     return await prisma.$transaction(async (tx) => {
-      return await createProduct(
+      const product = await createProduct(
         {
           name: params.name,
           slug,
@@ -103,8 +107,20 @@ export const createProductService = async (
             },
           },
         },
-        tx,
+        tx
       );
+
+      const stores = await findActiveStoreIds(tx);
+      await createProductStocks(
+        stores.map((store) => ({
+          productId: product.id,
+          storeId: store.id,
+          stock: 0,
+        })),
+        tx
+      );
+
+      return product;
     });
   } catch (error) {
     await cleanupUploadedProductImages(uploadedPublicIds);
@@ -116,7 +132,7 @@ export const patchProductImagesService = async (
   slug: string,
   params: TPatchProductImagesBody,
   files: TProductImageUploadFiles,
-  requesterId: string,
+  requesterId: string
 ) => {
   const scope = await getAdminProductScope(requesterId);
   const product = await findAdminProductBySlug(slug, scope);
@@ -126,25 +142,25 @@ export const patchProductImagesService = async (
     params.existingImages,
     files,
     params.newImagePositions,
-    product.images,
+    product.images
   );
 
   const removedImageIds = getRemovedProductImageIds(
     product.images,
-    params.existingImages,
+    params.existingImages
   );
   const { images, uploadedPublicIds } = await uploadProductImages(
     files,
     params.newImagePositions,
-    slug,
+    slug
   );
 
   try {
     await prisma.$transaction(async (tx) => {
       await Promise.all(
         params.existingImages.map((image) =>
-          updateProductImagePosition(image, tx),
-        ),
+          updateProductImagePosition(image, tx)
+        )
       );
       await softDeleteProductImagesByIds(product.id, removedImageIds, tx);
       await createProductImages(product.id, images, tx);
@@ -160,7 +176,7 @@ export const patchProductImagesService = async (
 export const updateProductService = async (
   slug: string,
   params: TUpdateProductBody,
-  requesterId: string,
+  requesterId: string
 ) => {
   const scope = await getAdminProductScope(requesterId);
   const product = await findAdminProductBySlug(slug, scope);
@@ -169,7 +185,7 @@ export const updateProductService = async (
   if (params.name && params.name !== product.name) {
     const existingProduct = await findProductByNameExceptId(
       params.name,
-      product.id,
+      product.id
     );
     if (existingProduct) {
       throw new AppError(400, "Product name is already in use");
@@ -219,7 +235,7 @@ export const updateProductService = async (
             }
           : {}),
       },
-      tx,
+      tx
     );
   });
 };
@@ -227,7 +243,7 @@ export const updateProductService = async (
 export const updateProductImagePositionsService = async (
   slug: string,
   params: TUpdateProductImagePositionsBody,
-  requesterId: string,
+  requesterId: string
 ) => {
   const scope = await getAdminProductScope(requesterId);
   const product = await findAdminProductBySlug(slug, scope);
@@ -237,7 +253,7 @@ export const updateProductImagePositionsService = async (
 
   await prisma.$transaction(async (tx) => {
     await Promise.all(
-      params.images.map((image) => updateProductImagePosition(image, tx)),
+      params.images.map((image) => updateProductImagePosition(image, tx))
     );
   });
 
@@ -247,13 +263,15 @@ export const updateProductImagePositionsService = async (
 export const deleteProductImageService = async (
   slug: string,
   imageId: string,
-  requesterId: string,
+  requesterId: string
 ) => {
   const scope = await getAdminProductScope(requesterId);
   const product = await findAdminProductBySlug(slug, scope);
   if (!product) throw new AppError(404, "Product was not found");
 
-  const image = product.images.find((productImage) => productImage.id === imageId);
+  const image = product.images.find(
+    (productImage) => productImage.id === imageId
+  );
   if (!image) throw new AppError(404, "Product image was not found");
 
   if (product.images.length <= 1) {
@@ -267,7 +285,10 @@ export const deleteProductImageService = async (
   return await findAdminProductBySlug(slug, scope);
 };
 
-export const getScopedAdminProductBySlugService = async (slug: string, requesterId: string) => {
+export const getScopedAdminProductBySlugService = async (
+  slug: string,
+  requesterId: string
+) => {
   const scope = await getAdminProductScope(requesterId);
   const product = await findAdminProductBySlug(slug, scope);
   if (!product) throw new AppError(404, "Product was not found");
@@ -275,10 +296,19 @@ export const getScopedAdminProductBySlugService = async (slug: string, requester
   return product;
 };
 
-export const deleteProductService = async (slug: string, requesterId: string) => {
+export const deleteProductService = async (
+  slug: string,
+  requesterId: string
+) => {
   const scope = await getAdminProductScope(requesterId);
   const product = await findAdminProductBySlug(slug, scope);
   if (!product) throw new AppError(404, "Product was not found");
+
+  await deleteProductImagesFromCloudinary(
+    product.images
+      .map((image) => image.publicId)
+      .filter((publicId): publicId is string => Boolean(publicId))
+  );
 
   await prisma.$transaction(async (tx) => {
     await softDeleteProductImages(product.id, tx);

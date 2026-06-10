@@ -27,6 +27,25 @@ const productListInclude = {
   },
 };
 
+const storeScopedProductInclude = (storeId: string) => ({
+  ...productListInclude,
+  stocks: {
+    where: {
+      storeId,
+      deletedAt: null,
+    },
+    select: {
+      id: true,
+      productId: true,
+      storeId: true,
+      stock: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+    take: 1,
+  },
+});
+
 export const findProducts = async (
   where: ProductWhereInput = { deletedAt: null },
   options: TFindManyProductOptions = {},
@@ -35,6 +54,19 @@ export const findProducts = async (
   return await db.product.findMany({
     where,
     include: productListInclude,
+    ...options,
+  });
+};
+
+export const findStoreScopedProducts = async (
+  storeId: string,
+  where: ProductWhereInput = { deletedAt: null },
+  options: TFindManyProductOptions = {},
+  db: TPrisma = prisma,
+) => {
+  return await db.product.findMany({
+    where,
+    include: storeScopedProductInclude(storeId),
     ...options,
   });
 };
@@ -87,5 +119,19 @@ export const findProductBySlug = async (
           }
         : {}),
     },
+  });
+};
+
+export const findStoreScopedProductBySlug = async (
+  storeId: string,
+  slug: string,
+  db: TPrisma = prisma,
+) => {
+  return await db.product.findFirst({
+    where: {
+      slug,
+      deletedAt: null,
+    },
+    include: storeScopedProductInclude(storeId),
   });
 };

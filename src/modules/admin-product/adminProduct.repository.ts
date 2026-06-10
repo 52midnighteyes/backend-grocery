@@ -1,6 +1,7 @@
 import {
   ProductCreateInput,
   ProductImageCreateManyInput,
+  ProductStockCreateManyInput,
   ProductUpdateInput,
   ProductWhereInput,
 } from "../../../generated/prisma/models.js";
@@ -96,6 +97,28 @@ export const createProduct = async (
         },
       },
     },
+  });
+};
+
+export const findActiveStoreIds = async (db: TPrisma = prisma) => {
+  return await db.store.findMany({
+    where: {
+      deletedAt: null,
+    },
+    select: {
+      id: true,
+    },
+  });
+};
+
+export const createProductStocks = async (
+  data: ProductStockCreateManyInput[],
+  db: TPrisma = prisma,
+) => {
+  if (!data.length) return { count: 0 };
+
+  return await db.productStock.createMany({
+    data,
   });
 };
 

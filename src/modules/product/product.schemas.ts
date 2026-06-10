@@ -53,6 +53,15 @@ export const productSlugParamSchema = z.object({
   slug: z.string().min(1, "Product slug is required").trim(),
 });
 
+export const storeProductsParamSchema = z.object({
+  storeId: z.uuid({ error: "Store ID is invalid" }),
+});
+
+export const storeProductSlugParamSchema = z.object({
+  storeId: z.uuid({ error: "Store ID is invalid" }),
+  slug: z.string().min(1, "Product slug is required").trim(),
+});
+
 export const getProductsQuerySchema = z
   .object({
     q: z.preprocess(emptyStringToUndefined, z.string().trim().optional()),
@@ -130,6 +139,13 @@ export const getProductBySlugQuerySchema = z.object({
   ),
 });
 
+export const getStoreScopedProductsQuerySchema = z.preprocess((value) => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return value;
+
+  const { storeId: _storeId, ...query } = value as Record<string, unknown>;
+  return query;
+}, getProductsQuerySchema);
+
 export const createProductBodySchema = z.object({
   name: z.string().min(1, "Product name is required").trim(),
   categoryId: z.uuid({ error: "Category ID is invalid" }),
@@ -172,7 +188,14 @@ export const updateProductImagePositionsBodySchema = z.object({
 });
 
 export type TProductSlugParam = z.infer<typeof productSlugParamSchema>;
+export type TStoreProductsParam = z.infer<typeof storeProductsParamSchema>;
+export type TStoreProductSlugParam = z.infer<
+  typeof storeProductSlugParamSchema
+>;
 export type TGetProductsQuery = z.infer<typeof getProductsQuerySchema>;
+export type TGetStoreScopedProductsQuery = z.infer<
+  typeof getStoreScopedProductsQuerySchema
+>;
 export type TGetProductBySlugQuery = z.infer<
   typeof getProductBySlugQuerySchema
 >;
