@@ -28,6 +28,14 @@ export const cleanupUploadedProductImages = async (publicIds: string[]) => {
   );
 };
 
+export const deleteProductImagesFromCloudinary = async (
+  publicIds: string[],
+) => {
+  if (!publicIds.length) return;
+
+  await Promise.all(publicIds.map((publicId) => cloudinaryDelete(publicId)));
+};
+
 export const getAdminProductScope = async (
   requesterId: string,
 ): Promise<TAdminProductScope> => {
