@@ -26,5 +26,6 @@ export const ADMIN_REFRESH_TOKEN_SECRET = getRequiredEnv(
 );
 export const OPENCAGE_API_KEY = getRequiredEnv("OPENCAGE_API_KEY");
 export const STORE_MAX_RADIUS_KM = getNumberEnv("STORE_MAX_RADIUS_KM", 50);
+export const RAJAONGKIR_API_KEY = getRequiredEnv("RAJAONGKIR_API_KEY");
 export const MIDTRANS_SERVER_KEY = getRequiredEnv("MIDTRANS_SERVER_KEY");
 export const MIDTRANS_IS_PRODUCTION = process.env.MIDTRANS_IS_PRODUCTION || "false";
