@@ -19,6 +19,7 @@ import {
   updateTransactionStatus,
   incrementProductStock,
 } from "./order.repository.js";
+import { hardDeleteCartItemsByUserId } from "../cart/cart.repository.js";
 import { DiscountType } from "../../../generated/prisma/enums.js";
 
 export const createOrderService = async (
@@ -37,7 +38,7 @@ export const createOrderService = async (
     throw new AppError(404, "No store available near your address");
   }
 
-  return prisma.$transaction(async (tx) => {
+  const order = await prisma.$transaction(async (tx) => {
     // Validasi stok setiap item dan hitung total harga
     let subtotal = 0;
     const itemsWithPrice: Array<{
@@ -204,6 +205,12 @@ export const createOrderService = async (
 
     return transaction;
   });
+
+  // Hard delete cart items setelah order berhasil — di luar transaction
+  // supaya gagalnya cart clear tidak rollback order yang sudah dibuat.
+  await hardDeleteCartItemsByUserId(userId);
+
+  return order;
 };
 
 export const getOrdersService = async (

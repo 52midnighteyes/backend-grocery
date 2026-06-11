@@ -43,3 +43,24 @@ export const uploadAvatar = multer({
     cb(null, true);
   },
 });
+
+export const uploadPaymentProof = multer({
+  storage,
+  limits: {
+    fileSize: 1 * 1024 * 1024,
+  },
+  fileFilter: (_req, file, cb) => {
+    const allowedMimeTypes = ["image/jpeg", "image/png"];
+
+    if (!allowedMimeTypes.includes(file.mimetype)) {
+      return cb(
+        new AppError(
+          400,
+          "Format tidak didukung. Bukti pembayaran hanya boleh JPG atau PNG."
+        )
+      );
+    }
+
+    cb(null, true);
+  },
+});
