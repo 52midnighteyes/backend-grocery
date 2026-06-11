@@ -134,3 +134,27 @@ export const softDeleteCartItem = async (
     data: { deletedAt: new Date() },
   });
 };
+// Hard delete semua cart items milik user setelah order berhasil dibuat.
+// Pakai deleteMany langsung tanpa soft delete karena items sudah pindah ke order.
+export const hardDeleteCartItemsByUserId = async (
+  userId: string,
+  db: TPrisma = prisma,
+) => {
+  const cart = await db.cart.findUnique({ where: { userId } });
+  if (!cart) return;
+  return db.cartItem.deleteMany({
+    where: { cartId: cart.id },
+  });
+};
+
+// Cari stok tertinggi yang tersedia untuk sebuah produk di semua toko.
+// Dipakai saat update quantity cart untuk validasi batas maksimal.
+export const findMaxProductStockForProduct = async (
+  productId: string,
+  db: TPrisma = prisma,
+) => {
+  return db.productStock.findFirst({
+    where: { productId, deletedAt: null },
+    orderBy: { stock: "desc" },
+  });
+};
