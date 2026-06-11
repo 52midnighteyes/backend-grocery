@@ -19,7 +19,7 @@ cloudinary.config({
 });
 
 const BASE_PARENT_FOLDER = "GROCERGO";
-type TPicture = "PRODUCT" | "AVATAR";
+type TPicture = "PRODUCT" | "AVATAR" | "PAYMENT_PROOF";
 const ALLOWED_IMAGE_FORMATS = ["jpg", "png", "gif"];
 type TCloudinaryUpload = {
   file: Express.Multer.File;
@@ -31,16 +31,12 @@ export const cloudinaryUpload = (
   params: TCloudinaryUpload
 ): Promise<UploadApiResponse> => {
   return new Promise((resolve, reject) => {
-    const folder =
-      params.type === "AVATAR"
-        ? `${BASE_PARENT_FOLDER}/USERS/${params.id}/AVATARS`
-        : `${BASE_PARENT_FOLDER}/PRODUCTS/${params.id}`;
-    const uploadId = `${params.id}-${Date.now()}-${randomUUID()}`;
-
+    let folder: string;
     let uploadOptions: UploadApiOptions;
 
     switch (params.type) {
       case "AVATAR":
+        folder = `${BASE_PARENT_FOLDER}/USERS/${params.id}/AVATARS`;
         uploadOptions = {
           folder,
           public_id: `AVATAR-${params.id}`,
@@ -52,7 +48,22 @@ export const cloudinaryUpload = (
         };
         break;
 
+      case "PAYMENT_PROOF":
+        folder = `${BASE_PARENT_FOLDER}/TRANSACTIONS/${params.id}/PAYMENT_PROOF`;
+        uploadOptions = {
+          folder,
+          public_id: `PAYMENT_PROOF-${params.id}-${Date.now()}`,
+          overwrite: true,
+          invalidate: true,
+          resource_type: "image",
+          allowed_formats: ["jpg", "png"], // GIF tidak diizinkan untuk bukti bayar
+        };
+        break;
+
       case "PRODUCT":
+      default: {
+        const uploadId = `${params.id}-${Date.now()}-${randomUUID()}`;
+        folder = `${BASE_PARENT_FOLDER}/PRODUCTS/${params.id}`;
         uploadOptions = {
           folder,
           public_id: uploadId,
@@ -62,13 +73,7 @@ export const cloudinaryUpload = (
           allowed_formats: ALLOWED_IMAGE_FORMATS,
         };
         break;
-
-      default:
-        uploadOptions = {
-          folder,
-          resource_type: "image",
-          allowed_formats: ALLOWED_IMAGE_FORMATS,
-        };
+      }
     }
 
     const stream = cloudinary.uploader.upload_stream(
