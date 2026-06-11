@@ -165,52 +165,88 @@ export const buildStoreScopedProductWhere = (
     inStock: undefined,
   });
 
-  const hasStockFilter =
-    query.minStock !== undefined ||
-    query.maxStock !== undefined ||
-    typeof query.inStock === "boolean";
-
-  if (!hasStockFilter) return where;
-
   const stockWhere = buildStockWhere({
     storeId,
     minStock: query.minStock,
     maxStock: query.maxStock,
     inStock: query.inStock,
   });
-  const canMissingStockCountAsZero =
-    query.inStock === false ||
-    ((query.minStock === undefined || query.minStock <= 0) &&
-      (query.maxStock === undefined || query.maxStock >= 0));
-  const stockCondition: ProductWhereInput = canMissingStockCountAsZero
-    ? {
-        OR: [
-          {
-            stocks: {
-              some: stockWhere,
-            },
-          },
-          {
-            stocks: {
-              none: {
-                storeId,
-                deletedAt: null,
-              },
-            },
-          },
-        ],
-      }
-    : {
-        stocks: {
-          some: stockWhere,
-        },
-      };
+  const stockCondition: ProductWhereInput = {
+    stocks: {
+      some: stockWhere,
+    },
+  };
 
   where.AND = Array.isArray(where.AND)
     ? [...where.AND, stockCondition]
     : [stockCondition];
 
   return where;
+};
+
+const appendProductWhereCondition = (
+  where: ProductWhereInput,
+  condition: ProductWhereInput,
+): ProductWhereInput => {
+  const existingAnd = where.AND;
+  const andConditions = Array.isArray(existingAnd)
+    ? existingAnd
+    : existingAnd
+      ? [existingAnd]
+      : [];
+
+  return {
+    ...where,
+    AND: [...andConditions, condition],
+  };
+};
+
+export const buildStoreScopedAvailableProductWhere = (
+  storeId: string,
+  query: TGetProductsQuery,
+) => {
+  const where = buildStoreScopedProductWhere(storeId, {
+    ...query,
+    inStock: undefined,
+    minStock: undefined,
+    maxStock: undefined,
+  });
+
+  return appendProductWhereCondition(where, {
+    stocks: {
+      some: {
+        storeId,
+        deletedAt: null,
+        stock: {
+          gt: 0,
+        },
+      },
+    },
+  });
+};
+
+export const buildStoreScopedUnavailableProductWhere = (
+  storeId: string,
+  query: TGetProductsQuery,
+) => {
+  const where = buildStoreScopedProductWhere(storeId, {
+    ...query,
+    inStock: undefined,
+    minStock: undefined,
+    maxStock: undefined,
+  });
+
+  return appendProductWhereCondition(where, {
+    stocks: {
+      some: {
+        storeId,
+        deletedAt: null,
+        stock: {
+          lte: 0,
+        },
+      },
+    },
+  });
 };
 
 export const attachStoreStock = <

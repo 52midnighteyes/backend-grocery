@@ -131,6 +131,12 @@ export const findStoreScopedProductBySlug = async (
     where: {
       slug,
       deletedAt: null,
+      stocks: {
+        some: {
+          storeId,
+          deletedAt: null,
+        },
+      },
     },
     include: storeScopedProductInclude(storeId),
   });

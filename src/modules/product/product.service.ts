@@ -4,7 +4,9 @@ import {
   attachStoreStock,
   buildProductOrderBy,
   buildProductWhere,
+  buildStoreScopedAvailableProductWhere,
   buildStoreScopedProductWhere,
+  buildStoreScopedUnavailableProductWhere,
 } from "./product.helper.js";
 import {
   countProducts,
@@ -64,6 +66,56 @@ export const getStoreScopedProductsService = async (
   const skip = (page - 1) * limit;
   const where = buildStoreScopedProductWhere(storeId, params);
   const orderBy = buildProductOrderBy(params);
+
+  if (params.inStock === undefined) {
+    const availableWhere = buildStoreScopedAvailableProductWhere(storeId, params);
+    const unavailableWhere = buildStoreScopedUnavailableProductWhere(
+      storeId,
+      params,
+    );
+
+    const [availableTotal, total] = await Promise.all([
+      countProducts(availableWhere),
+      countProducts(where),
+    ]);
+
+    const products = [];
+
+    if (skip < availableTotal) {
+      const availableTake = Math.min(limit, availableTotal - skip);
+      const availableProducts = await findStoreScopedProducts(
+        storeId,
+        availableWhere,
+        {
+          skip,
+          take: availableTake,
+          orderBy,
+        },
+      );
+
+      products.push(...availableProducts);
+    }
+
+    if (products.length < limit) {
+      const unavailableSkip = Math.max(0, skip - availableTotal);
+      const unavailableProducts = await findStoreScopedProducts(
+        storeId,
+        unavailableWhere,
+        {
+          skip: unavailableSkip,
+          take: limit - products.length,
+          orderBy,
+        },
+      );
+
+      products.push(...unavailableProducts);
+    }
+
+    return {
+      data: products.map((product) => attachStoreStock(product, store)),
+      meta: buildPaginationMeta(page, limit, total),
+    };
+  }
 
   const [products, total] = await Promise.all([
     findStoreScopedProducts(storeId, where, {

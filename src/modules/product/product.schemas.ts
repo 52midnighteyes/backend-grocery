@@ -142,7 +142,12 @@ export const getProductBySlugQuerySchema = z.object({
 export const getStoreScopedProductsQuerySchema = z.preprocess((value) => {
   if (!value || typeof value !== "object" || Array.isArray(value)) return value;
 
-  const { storeId: _storeId, ...query } = value as Record<string, unknown>;
+  const {
+    storeId: _storeId,
+    minStock: _minStock,
+    maxStock: _maxStock,
+    ...query
+  } = value as Record<string, unknown>;
   return query;
 }, getProductsQuerySchema);
 
