@@ -35,7 +35,7 @@ type TRajaOngkirCostItem = {
 // OpenCage formatted address Indonesia biasanya:
 // "Jl. Nama Jalan, Kelurahan, Kecamatan, Kota, Provinsi ZIP, Indonesia"
 // Kita ambil bagian pertama yang bukan jalan/angka sebagai search term ke RajaOngkir.
-const extractSubdistrict = (formatted: string): string => {
+export const extractSubdistrict = (formatted: string): string => {
   const parts = formatted.split(",").map((p) => p.trim());
   const isStreet = (p: string) =>
     /\d/.test(p) || /^jl[\s.]/i.test(p) || /^jalan\s/i.test(p);
@@ -43,12 +43,13 @@ const extractSubdistrict = (formatted: string): string => {
   return nonStreet[0] ?? parts[0];
 };
 
-const searchRajaOngkirDestination = async (
+export const searchRajaOngkirDestination = async (
   term: string,
 ): Promise<TRajaOngkirDestination | null> => {
   const url = `${RAJAONGKIR_BASE_URL}/destination/domestic-destination?search=${encodeURIComponent(term)}&limit=5&offset=0`;
   const res = await fetch(url, { headers: { key: RAJAONGKIR_API_KEY } });
 
+  if (res.status === 404) return null;      
   if (!res.ok) throw new AppError(502, "Shipping service is unavailable");
 
   const body = (await res.json()) as {
