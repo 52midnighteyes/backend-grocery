@@ -151,23 +151,38 @@ model User {
 }
 
 model Address {
-  id        String    @id @default(uuid())
-  name      String
-  userId    String? @map("user_id") 
-  storeId   String? @map("store_id")
-  longitude String
-  latitude  String
-  notes     String?
-  isDefault Boolean   @default(false) @map("is_default")
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("deleted_at")
+  id         String    @id @default(uuid())
+  name       String
+  userId     String?   @map("user_id")
+  storeId    String?   @map("store_id")
+  domesticId Int?      @map("domestic_id")
+  longitude  String
+  latitude   String
+  notes      String?
+  isDefault  Boolean   @default(false) @map("is_default")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  deletedAt  DateTime? @map("deleted_at")
 
-
-  stores Store? @relation(fields: [storeId], references: [id])
-  user User? @relation(fields: [userId], references: [id])
+  stores   Store?    @relation(fields: [storeId], references: [id])
+  user     User?     @relation(fields: [userId], references: [id])
+  domestic Domestic? @relation(fields: [domesticId], references: [id])
 
   @@map("address")
+}
+
+model Domestic {
+  id              Int     @id
+  label           String
+  provinceName    String  @map("province_name")
+  cityName        String  @map("city_name")
+  districtName    String  @map("district_name")
+  subdistrictName String  @map("subdistrict_name")
+  zipCode         String  @map("zip_code")
+
+  addresses Address[]
+
+  @@map("domestic")
 }
 
 model RegisterToken {
