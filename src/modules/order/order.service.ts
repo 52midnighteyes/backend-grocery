@@ -268,8 +268,10 @@ export const updateOrderStatusService = async (
     }
 
     if (status === "cancel") {
-      if (order.transactionStatus !== "waitingPayment") {
-        throw new AppError(400, "Order can only be cancelled before payment is made");
+      // User boleh cancel selama belum dikonfirmasi admin (waitingPayment atau waitingConfirmation)
+      const cancellableStatuses = ["waitingPayment", "waitingConfirmation"];
+      if (!cancellableStatuses.includes(order.transactionStatus)) {
+        throw new AppError(400, "Order can only be cancelled before payment is confirmed by admin");
       }
 
       await updateTransactionStatus(orderId, "cancel", tx);
