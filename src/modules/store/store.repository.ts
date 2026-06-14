@@ -60,6 +60,7 @@ export const findStoresWithCoordinates = async (db: TPrisma = prisma) => {
       latitude: { not: null },
       longitude: { not: null },
     },
+    include: { domestic: true}
   });
 };
 
@@ -72,3 +73,6 @@ export const findMainStore = async (db: TPrisma = prisma) => {
     },
   });
 };
+
+export const updateStoreDomestic = (storeId: string, domesticId: number) =>
+  prisma.store.update({ where: { id: storeId }, data: { domesticId } });

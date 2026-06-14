@@ -1,8 +1,8 @@
 import { AppError } from "../../class/appError.js";
 import { RAJAONGKIR_API_KEY } from "../../config/config.js";
 import { reverseGeocode } from "../geocode/geocode.service.js";
-import { findAddressById } from "../address/address.repository.js";
-import { findStoresWithCoordinates } from "../store/store.repository.js";
+import { findAddressById, updateAddress, upsertDomestic } from "../address/address.repository.js";
+import { findStoresWithCoordinates, updateStoreDomestic } from "../store/store.repository.js";
 import { haversineDistanceKm } from "../../helper/geo.js";
 
 const RAJAONGKIR_BASE_URL = "https://rajaongkir.komerce.id/api/v1";
@@ -31,6 +31,30 @@ type TRajaOngkirCostItem = {
   cost: number;
   etd: string;
 };
+
+// Resolve a RajaOngkir destination id for a point. Reuse a stored domesticId
+// when present; otherwise geocode, search by zip code, persist the Domestic
+// row, then let the caller save the id back onto its owner (address/store).
+const resolveDomestic = async (
+  cached: { domesticId: number | null; domestic: { id: number; label: string } | null },
+  coords: { lat: number; lng: number },
+  persistId: (domesticId: number) => Promise<unknown>,
+): Promise<{ id: number; label: string }> => {
+  if (cached.domesticId && cached.domestic) {
+    return { id: cached.domestic.id, label: cached.domestic.label };
+  }
+
+  const geo = await reverseGeocode(coords.lat, coords.lng);
+  const term = geo.postcode ?? extractSubdistrict(geo.label);
+  const result = await searchRajaOngkirDestination(term);
+  if (!result) throw new AppError(404, `Area "${term}" not found`);
+
+  await upsertDomestic(result);   // FK target dibuat dulu
+  await persistId(result.id);     // baru tunjuk ke situ
+
+  return { id: result.id, label: result.label };
+};
+
 
 // OpenCage formatted address Indonesia biasanya:
 // "Jl. Nama Jalan, Kelurahan, Kecamatan, Kota, Provinsi ZIP, Indonesia"
@@ -91,15 +115,10 @@ const calculateRajaOngkirCost = async (
   return body.data ?? [];
 };
 
-export const getShippingCostService = async (
-  userId: string,
-  addressId: string,
-) => {
-  // 1. Fetch alamat user dari DB
+export const getShippingCostService = async (userId: string, addressId: string) => {
   const address = await findAddressById(addressId, userId);
   if (!address) throw new AppError(404, "Address not found");
 
-  // 2. Cari toko terdekat dari alamat user
   const stores = await findStoresWithCoordinates();
   if (!stores.length) throw new AppError(404, "No stores available");
 
@@ -115,39 +134,24 @@ export const getShippingCostService = async (
     }))
     .sort((a, b) => a.distance - b.distance)[0];
 
-  // 3. Reverse geocode keduanya secara paralel
-  const [destGeo, originGeo] = await Promise.all([
-    reverseGeocode(parseFloat(address.latitude), parseFloat(address.longitude)),
-    reverseGeocode(parseFloat(nearest.latitude!.toString()), parseFloat(nearest.longitude!.toString())),
+  const [destination, origin] = await Promise.all([
+    resolveDomestic(
+      { domesticId: address.domesticId, domestic: address.domestic },
+      { lat: parseFloat(address.latitude), lng: parseFloat(address.longitude) },
+      (id) => updateAddress(addressId, { domesticId: id }),
+    ),
+    resolveDomestic(
+      { domesticId: nearest.domesticId, domestic: nearest.domestic },
+      { lat: parseFloat(nearest.latitude!.toString()), lng: parseFloat(nearest.longitude!.toString()) },
+      (id) => updateStoreDomestic(nearest.id, id),
+    ),
   ]);
 
-  const destTerm = extractSubdistrict(destGeo.label);
-  const originTerm = extractSubdistrict(originGeo.label);
-
-  // 4. Search RajaOngkir untuk dapat subdistrict ID
-  const [destResult, originResult] = await Promise.all([
-    searchRajaOngkirDestination(destTerm),
-    searchRajaOngkirDestination(originTerm),
-  ]);
-
-  if (!destResult)
-    throw new AppError(404, `Destination area "${destTerm}" not found`);
-  if (!originResult)
-    throw new AppError(404, `Origin area "${originTerm}" not found`);
-
-  // 5. Hitung ongkir
-  const costs = await calculateRajaOngkirCost(originResult.id, destResult.id);
+  const costs = await calculateRajaOngkirCost(origin.id, destination.id);
 
   return {
-    origin: {
-      id: originResult.id,
-      label: originGeo.label,
-      store: nearest.name,
-    },
-    destination: {
-      id: destResult.id,
-      label: destGeo.label,
-    },
+    origin: { id: origin.id, label: origin.label, store: nearest.name },
+    destination: { id: destination.id, label: destination.label },
     costs,
   };
 };

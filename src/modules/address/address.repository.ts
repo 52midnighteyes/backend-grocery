@@ -18,6 +18,7 @@ export const findAddressesByUserId = async (userId: string) => {
 export const findAddressById = async (addressId: string, userId: string) => {
   return prisma.address.findFirst({
     where: { id: addressId, userId, deletedAt: null },
+    include: { domestic: true },
   });
 };
 
