@@ -53,9 +53,14 @@ export const createOrderService = async (
       const stock = await findProductStockByStore(item.productId, nearestStore.id, tx);
 
       if (!stock) {
+        // Ambil nama produk untuk pesan error yang lebih informatif
+        const product = await tx.product.findFirst({
+          where: { id: item.productId },
+          select: { name: true },
+        });
         throw new AppError(
           404,
-          `Product ${item.productId} is not available in the nearest store`,
+          `Produk "${product?.name ?? "yang dipilih"}" tidak tersedia di toko terdekat`,
         );
       }
 
@@ -169,10 +174,12 @@ export const createOrderService = async (
       await decrementProductStock(item.productId, nearestStore.id, item.quantity, tx);
       await createStockHistory(
         {
-          name: `Sale - Order ${transaction.id}`,
+          name: `Penjualan - ${item.name}`,
           productId: item.productId,
           storeId: nearestStore.id,
           type: "sale",
+          transactionId: transaction.id,
+          quantity: item.quantity,
         },
         tx,
       );
@@ -281,10 +288,12 @@ export const updateOrderStatusService = async (
         await incrementProductStock(item.productId, order.storeId, item.quantity, tx);
         await createStockHistory(
           {
-            name: `Return - Order ${orderId} cancelled`,
+            name: `Pengembalian - ${item.name}`,
             productId: item.productId,
             storeId: order.storeId,
             type: "returnOut",
+            transactionId: orderId,
+            quantity: item.quantity,
           },
           tx,
         );

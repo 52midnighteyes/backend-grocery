@@ -26,10 +26,12 @@ export const startAutoCancelOrderJob = () => {
             await incrementProductStock(item.productId, order.storeId, item.quantity, tx);
             await createStockHistory(
               {
-                name: `Auto Cancel - Order ${order.id} expired`,
+                name: `Pembatalan Otomatis - ${item.name}`,
                 productId: item.productId,
                 storeId: order.storeId,
                 type: "returnOut",
+                transactionId: order.id,
+                quantity: item.quantity,
               },
               tx,
             );

@@ -145,6 +145,8 @@ export const createStockHistory = async (
     productId: string;
     storeId: string;
     type: "sale" | "returnOut";
+    transactionId?: string;
+    quantity?: number;
   },
   db: TPrisma = prisma,
 ) => {
