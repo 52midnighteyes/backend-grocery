@@ -24,6 +24,7 @@ import orderRoutes from "./modules/order/order.routes.js";
 import geocodeRoutes from "./modules/geocode/geocode.routes.js";
 import addressRoutes from "./modules/address/address.routes.js";
 import shippingRoutes from "./modules/shipping/shipping.routes.js";
+import paymentRoutes from "./modules/payment/payment.routes.js";
 
 const app = express();
 
@@ -68,6 +69,7 @@ app.get("/", (_req: Request, res: Response) => {
 app.use("/api/auth", authRouter);
 app.use("/api/cart", cartRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/payment", paymentRoutes);
 app.use("/api/addresses", addressRoutes);
 app.use("/api/shipping", shippingRoutes);
 app.use("/api/admin/auth", adminAuthRoutes);

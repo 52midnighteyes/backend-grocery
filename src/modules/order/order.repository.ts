@@ -87,6 +87,9 @@ export const createTransaction = async (
   payload: TCreateOrderPayload,
   db: TPrisma = prisma,
 ) => {
+  // Set paymentExpiredAt 1 jam dari sekarang sesuai spec
+  const paymentExpiredAt = new Date(Date.now() + 60 * 60 * 1000);
+
   return db.transaction.create({
     data: {
       customerId: payload.customerId,
@@ -97,6 +100,7 @@ export const createTransaction = async (
       voucherId: payload.voucherId ?? null,
       deliveryVoucherId: payload.deliveryVoucherId ?? null,
       transactionStatus: "waitingPayment",
+      paymentExpiredAt,
       items: {
         create: payload.items.map((item) => ({
           name: item.name,
@@ -141,6 +145,8 @@ export const createStockHistory = async (
     productId: string;
     storeId: string;
     type: "sale" | "returnOut";
+    transactionId?: string;
+    quantity?: number;
   },
   db: TPrisma = prisma,
 ) => {
@@ -263,5 +269,21 @@ export const updateTransactionStatus = async (
   return db.transaction.update({
     where: { id: transactionId },
     data: { transactionStatus: status as never },
+  });
+};
+
+// Dipakai oleh cron job auto cancel
+export const findExpiredOrders = async (db: TPrisma = prisma) => {
+  return db.transaction.findMany({
+    where: {
+      transactionStatus: "waitingPayment",
+      paymentExpiredAt: { lte: new Date() },
+      deletedAt: null,
+    },
+    include: {
+      items: {
+        where: { deletedAt: null },
+      },
+    },
   });
 };
