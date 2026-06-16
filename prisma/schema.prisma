@@ -51,6 +51,14 @@ enum StockMovement {
   lost
 }
 
+enum StockTransferStatus {
+  pending
+  approved
+  rejected
+  received
+  cancelled
+}
+
 // --------------------------------------------------------
 // MODELS
 // --------------------------------------------------------
@@ -72,6 +80,8 @@ model Store {
   productStocks  ProductStock[]
   stockHistories StockHistory[]
   transactions   Transaction[]
+  stockTransferRequestsFrom StockTransferRequest[] @relation("StockTransferFromStore")
+  stockTransferRequestsTo StockTransferRequest[] @relation("StockTransferToStore")
   
   domestic   Domestic? @relation(fields: [domesticId], references: [id])
 
@@ -147,6 +157,11 @@ model User {
 
   transactionsAsCustomer Transaction[]     @relation("CustomerTransactions")
   transactionsAsAdmin    Transaction[]     @relation("AdminTransactions")
+  stockTransferRequestsRequested StockTransferRequest[] @relation("StockTransferRequestedBy")
+  stockTransferRequestsApproved StockTransferRequest[] @relation("StockTransferApprovedBy")
+  stockTransferRequestsRejected StockTransferRequest[] @relation("StockTransferRejectedBy")
+  stockTransferRequestsReceived StockTransferRequest[] @relation("StockTransferReceivedBy")
+  stockTransferRequestsCancelled StockTransferRequest[] @relation("StockTransferCancelledBy")
   referralsMade          ReferralHistory[] @relation("Referrer")
   referralsReceived      ReferralHistory[] @relation("Referred")
 
@@ -243,6 +258,7 @@ model Product {
   images           ProductImage[]
   stocks           ProductStock[]
   stockHistories   StockHistory[]
+  stockTransferRequests StockTransferRequest[]
   transactionItems TransactionItem[]
   discounts        Discount[]
   cartItems        CartItem[]
@@ -290,6 +306,7 @@ model StockHistory {
   productId String @map("product_id")
   adminId String? @map("admin_id")
   transactionId String? @map("transaction_id")
+  stockTransferRequestId String? @map("stock_transfer_request_id")
   storeId   String @map("store_id")
   type      StockMovement
   notes     String?
@@ -301,8 +318,53 @@ model StockHistory {
   store   Store   @relation(fields: [storeId], references: [id])
   admin User? @relation("AdminStockHistories", fields: [adminId], references: [id])
   transaction Transaction? @relation(fields: [transactionId], references: [id])
+  stockTransferRequest StockTransferRequest? @relation(fields: [stockTransferRequestId], references: [id])
 
   @@map("stock_history")
+}
+
+model StockTransferRequest {
+  id             String              @id @default(uuid())
+  productId      String              @map("product_id")
+  productName    String              @map("product_name")
+  fromStoreId    String              @map("from_store_id")
+  toStoreId      String              @map("to_store_id")
+  requestedById  String              @map("requested_by_id")
+  approvedById   String?             @map("approved_by_id")
+  rejectedById   String?             @map("rejected_by_id")
+  receivedById   String?             @map("received_by_id")
+  cancelledById  String?             @map("cancelled_by_id")
+  quantity       Int
+  notes          String?
+  status         StockTransferStatus @default(pending)
+  requestNotes   String?             @map("request_notes")
+  responseNotes  String?             @map("response_notes")
+  receivedNotes  String?             @map("received_notes")
+  cancelledNotes String?             @map("cancelled_notes")
+  approvedAt     DateTime?           @map("approved_at")
+  rejectedAt     DateTime?           @map("rejected_at")
+  receivedAt     DateTime?           @map("received_at")
+  cancelledAt    DateTime?           @map("cancelled_at")
+  createdAt      DateTime            @default(now()) @map("created_at")
+  updatedAt      DateTime            @updatedAt @map("updated_at")
+  deletedAt      DateTime?           @map("deleted_at")
+
+  product     Product @relation(fields: [productId], references: [id])
+  fromStore   Store   @relation("StockTransferFromStore", fields: [fromStoreId], references: [id])
+  toStore     Store   @relation("StockTransferToStore", fields: [toStoreId], references: [id])
+  requestedBy User    @relation("StockTransferRequestedBy", fields: [requestedById], references: [id])
+  approvedBy  User?   @relation("StockTransferApprovedBy", fields: [approvedById], references: [id])
+  rejectedBy  User?   @relation("StockTransferRejectedBy", fields: [rejectedById], references: [id])
+  receivedBy  User?   @relation("StockTransferReceivedBy", fields: [receivedById], references: [id])
+  cancelledBy User?   @relation("StockTransferCancelledBy", fields: [cancelledById], references: [id])
+
+  stockHistories StockHistory[]
+
+  @@index([productId])
+  @@index([fromStoreId])
+  @@index([toStoreId])
+  @@index([status])
+  @@map("stock_transfer_request")
 }
 
 model Discount {
