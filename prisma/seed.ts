@@ -23,6 +23,35 @@ const categories = [
   "Bakery",
 ];
 
+const permissions = [
+  { name: "admin:login", description: "Allow admin login" },
+  { name: "category:create", description: "Create category" },
+  { name: "category:update", description: "Update category" },
+  { name: "category:delete", description: "Delete category" },
+  { name: "product:create", description: "Create product" },
+  { name: "product:read", description: "View products and stock data" },
+  { name: "product:update", description: "Update product" },
+  { name: "product:delete", description: "Delete product" },
+  { name: "productImage:update", description: "Update product images" },
+  { name: "productImage:delete", description: "Delete product images" },
+  { name: "stock:update", description: "Update stock and stock transfers" },
+  { name: "user:read", description: "View users" },
+  { name: "adminAccount:create", description: "Create admin accounts" },
+  { name: "adminAccount:read", description: "View admin accounts" },
+  { name: "adminAccount:update", description: "Update admin accounts" },
+  { name: "adminAccount:delete", description: "Delete admin accounts" },
+  { name: "dashboard:read", description: "View admin dashboards" },
+  { name: "store:read", description: "View store dashboard data" },
+];
+
+const storeAdminPermissions = [
+  "admin:login",
+  "product:read",
+  "stock:update",
+  "dashboard:read",
+  "store:read",
+];
+
 // `stock` is the quantity placed in EVERY store. One item is intentionally 0 to
 // prove the homepage's inStock filter hides out-of-stock products.
 const products = [
@@ -42,6 +71,53 @@ const products = [
 
 const slugify = (value: string) =>
   value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+
+async function seedRolesAndPermissions() {
+  const roleIds: Record<string, string> = {};
+  const permissionIds: Record<string, string> = {};
+
+  for (const name of ["user", "storeAdmin", "superAdmin"]) {
+    const role = await prisma.role.upsert({
+      where: { name },
+      update: { deletedAt: null },
+      create: { name },
+    });
+    roleIds[name] = role.id;
+  }
+
+  for (const permission of permissions) {
+    const saved = await prisma.permission.upsert({
+      where: { name: permission.name },
+      update: { description: permission.description, deletedAt: null },
+      create: permission,
+    });
+    permissionIds[permission.name] = saved.id;
+  }
+
+  const assignPermission = async (roleName: string, permissionName: string) => {
+    await prisma.rolePermission.upsert({
+      where: {
+        roleId_permissionId: {
+          roleId: roleIds[roleName],
+          permissionId: permissionIds[permissionName],
+        },
+      },
+      update: { deletedAt: null },
+      create: {
+        roleId: roleIds[roleName],
+        permissionId: permissionIds[permissionName],
+      },
+    });
+  };
+
+  for (const permission of permissions) {
+    await assignPermission("superAdmin", permission.name);
+  }
+
+  for (const permissionName of storeAdminPermissions) {
+    await assignPermission("storeAdmin", permissionName);
+  }
+}
 
 async function seedStores() {
   const records: Record<string, string> = {};
@@ -111,11 +187,12 @@ async function seedProducts(
 }
 
 async function main() {
+  await seedRolesAndPermissions();
   const storeIds = await seedStores();
   const categoryIds = await seedCategories();
   await seedProducts(storeIds, categoryIds);
   console.log(
-    `Seed complete: ${stores.length} stores, ${categories.length} categories, ${products.length} products.`
+    `Seed complete: 3 roles, ${permissions.length} permissions, ${stores.length} stores, ${categories.length} categories, ${products.length} products.`
   );
 }
 

@@ -12,6 +12,7 @@ import adminCategoryRoutes from "./modules/admin-category/adminCategory.routes.j
 import adminProductRoutes from "./modules/admin-product/adminProduct.routes.js";
 import adminAuthRoutes from "./modules/admin-auth/adminAuth.routes.js";
 import adminStockRoutes from "./modules/admin-stock/adminStock.routes.js";
+import stockTransferRoutes from "./modules/stock-transfer/stockTransfer.routes.js";
 import authRouter from "./modules/auth/auth.router.js";
 import productRoutes from "./modules/product/product.routes.js";
 import categoryRoutes from "./modules/category/category.routes.js";
@@ -78,6 +79,7 @@ app.use("/api/admin/admin-accounts", adminManagementRoutes);
 app.use("/api/admin/users", userManagementRoutes);
 app.use("/api/admin/categories", adminCategoryRoutes);
 app.use("/api/admin/product", adminProductRoutes);
+app.use("/api/admin/stock/transfers", stockTransferRoutes);
 app.use("/api/admin/stock", adminStockRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/categories", categoryRoutes);
