@@ -163,6 +163,62 @@ export const findStoreStockByProductId = async (
   });
 };
 
+export const upsertStoreStock = async (
+  storeId: string,
+  productId: string,
+  db: TPrisma = prisma,
+) => {
+  return await db.productStock.upsert({
+    where: {
+      productId_storeId: {
+        productId,
+        storeId,
+      },
+    },
+    update: {
+      deletedAt: null,
+    },
+    create: {
+      productId,
+      storeId,
+      stock: 0,
+    },
+    include: {
+      store: {
+        select: {
+          id: true,
+          name: true,
+          latitude: true,
+          longitude: true,
+        },
+      },
+      product: {
+        include: {
+          category: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          images: {
+            where: {
+              deletedAt: null,
+            },
+            select: {
+              id: true,
+              image: true,
+              position: true,
+            },
+            orderBy: {
+              position: "asc",
+            },
+          },
+        },
+      },
+    },
+  });
+};
+
 export const updateStoreStockQuantity = async (
   stockId: string,
   stock: number,
