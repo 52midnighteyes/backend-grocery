@@ -373,6 +373,8 @@ model Discount {
   buyQuantity Int?         @map("buy_quantity")
   getQuantity Int?         @map("get_quantity")
   value       Int?
+  quota       Int?
+  usedQuota   Int          @default(0) @map("used_quota")
   productId   String       @map("product_id")
   storeId     String       @map("store_id")
   startDate   DateTime     @map("start_date")
