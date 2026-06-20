@@ -22,7 +22,7 @@ export const getStoreStocksController = async (
     );
 
     return res.status(200).json({
-      message: "Store stocks fetched successfully",
+      message: "Store products fetched successfully",
       data: result.data,
       meta: result.meta,
     });
@@ -42,7 +42,7 @@ export const getStoreStockByProductSlugController = async (
     const stock = await getStoreStockByProductSlugService(storeId, slug);
 
     return res.status(200).json({
-      message: "Store product stock fetched successfully",
+      message: "Store product fetched successfully",
       data: stock,
     });
   } catch (error) {

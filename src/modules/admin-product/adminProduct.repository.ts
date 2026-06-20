@@ -286,6 +286,7 @@ export const findAdminProductBySlug = async (
       discounts: {
         where: {
           deletedAt: null,
+          ...(scope.storeId ? { storeId: scope.storeId } : {}),
         },
         orderBy: {
           createdAt: "desc",
