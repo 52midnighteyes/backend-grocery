@@ -4,14 +4,12 @@ import { reverseGeocode } from "../geocode/geocode.service.js";
 import { findAddressById, updateAddress, upsertDomestic } from "../address/address.repository.js";
 import { findStoresWithCoordinates, updateStoreDomestic } from "../store/store.repository.js";
 import { haversineDistanceKm } from "../../helper/geo.js";
+import { findCartByUserId } from "../cart/cart.repository.js";
 
 const RAJAONGKIR_BASE_URL = "https://rajaongkir.komerce.id/api/v1";
 
 // Kurir yang disupport — bisa ditambah sesuai kebutuhan
 const DEFAULT_COURIERS = "jne:jnt:sicepat:anteraja:pos";
-
-// Default berat 1kg karena tidak ada data berat produk
-const DEFAULT_WEIGHT_GRAM = 1000;
 
 type TRajaOngkirDestination = {
   id: number;
@@ -87,11 +85,12 @@ export const searchRajaOngkirDestination = async (
 const calculateRajaOngkirCost = async (
   originId: number,
   destinationId: number,
+  weight: number,
 ): Promise<TRajaOngkirCostItem[]> => {
   const params = new URLSearchParams({
     origin: String(originId),
     destination: String(destinationId),
-    weight: String(DEFAULT_WEIGHT_GRAM),
+    weight: String(weight),
     courier: DEFAULT_COURIERS,
     price: "lowest",
   });
@@ -147,7 +146,14 @@ export const getShippingCostService = async (userId: string, addressId: string) 
     ),
   ]);
 
-  const costs = await calculateRajaOngkirCost(origin.id, destination.id);
+  const cart = await findCartByUserId(userId);
+  const totalWeight = cart?.items.reduce(
+    (sum, item) => sum + item.quantity * item.product.weight,
+    0,
+  ) ?? 1000;
+  const weight = Math.max(totalWeight, 1);
+
+  const costs = await calculateRajaOngkirCost(origin.id, destination.id, weight);
 
   return {
     origin: { id: origin.id, label: origin.label, store: nearest.name },
