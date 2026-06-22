@@ -2,6 +2,7 @@ import { prisma } from "../../libs/prisma/prisma.lib.js";
 import type { TPrisma } from "../../libs/prisma/prisma.types.js";
 import type { TAddToCartPayload, TUpdateCartPayload } from "./cart.types.js";
 
+// Query berat — dipakai untuk GET /cart yang perlu return data lengkap ke frontend.
 export const findCartByUserId = async (
   userId: string,
   db: TPrisma = prisma,
@@ -30,6 +31,18 @@ export const findCartByUserId = async (
         },
       },
     },
+  });
+};
+
+// Query ringan — HANYA untuk cek ownership di update/delete.
+// Jangan pakai findCartByUserId untuk ini karena terlalu berat.
+export const findCartIdByUserId = async (
+  userId: string,
+  db: TPrisma = prisma,
+) => {
+  return db.cart.findUnique({
+    where: { userId },
+    select: { id: true },
   });
 };
 
@@ -84,7 +97,7 @@ export const createCart = async (userId: string, db: TPrisma = prisma) => {
 // Menggantikan Prisma upsert karena upsert tidak restore deletedAt.
 // Alurnya:
 // 1. Cek apakah ada row untuk cartId + productId (termasuk soft-deleted)
-// 2. Kalau ada (deleted atau tidak) -> restore deletedAt ke null dan increment quantity
+// 2. Kalau ada (deleted atau tidak) -> restore deletedAt ke null dan set quantity
 // 3. Kalau tidak ada sama sekali -> create baru
 export const upsertCartItem = async (
   cartId: string,
@@ -136,6 +149,7 @@ export const softDeleteCartItem = async (
     data: { deletedAt: new Date() },
   });
 };
+
 // Hard delete semua cart items milik user setelah order berhasil dibuat.
 // Pakai deleteMany langsung tanpa soft delete karena items sudah pindah ke order.
 export const hardDeleteCartItemsByUserId = async (
@@ -150,7 +164,6 @@ export const hardDeleteCartItemsByUserId = async (
 };
 
 // Cari stok tertinggi yang tersedia untuk sebuah produk di semua toko.
-// Dipakai saat update quantity cart untuk validasi batas maksimal.
 export const findMaxProductStockForProduct = async (
   productId: string,
   db: TPrisma = prisma,
