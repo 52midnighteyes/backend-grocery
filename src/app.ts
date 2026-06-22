@@ -14,6 +14,7 @@ import adminProductRoutes from "./modules/admin-product/adminProduct.routes.js";
 import adminAuthRoutes from "./modules/admin-auth/adminAuth.routes.js";
 import adminStockRoutes from "./modules/admin-stock/adminStock.routes.js";
 import stockTransferRoutes from "./modules/stock-transfer/stockTransfer.routes.js";
+import adminOrderRoutes from "./modules/admin-order/adminOrder.routes.js";
 import authRouter from "./modules/auth/auth.router.js";
 import productRoutes from "./modules/product/product.routes.js";
 import categoryRoutes from "./modules/category/category.routes.js";
@@ -27,6 +28,7 @@ import geocodeRoutes from "./modules/geocode/geocode.routes.js";
 import addressRoutes from "./modules/address/address.routes.js";
 import shippingRoutes from "./modules/shipping/shipping.routes.js";
 import paymentRoutes from "./modules/payment/payment.routes.js";
+
 
 const app = express();
 
@@ -83,6 +85,7 @@ app.use("/api/admin/stores", adminStoreRoutes);
 app.use("/api/admin/product", adminProductRoutes);
 app.use("/api/admin/stock/transfers", stockTransferRoutes);
 app.use("/api/admin/stock", adminStockRoutes);
+app.use("/api/admin/orders", adminOrderRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/stocks", stockRoutes);

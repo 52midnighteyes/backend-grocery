@@ -12,8 +12,8 @@ import {
 } from "./cart.repository.js";
 import type { TAddToCartPayload, TUpdateCartPayload } from "./cart.types.js";
 
-export const getCartService = async (userId: string) => {
-  const cart = await findCartByUserId(userId);
+export const getCartService = async (userId: string, storeId?: string) => {
+  const cart = await findCartByUserId(userId, undefined, storeId);
 
   if (!cart) {
     return { items: [] };
