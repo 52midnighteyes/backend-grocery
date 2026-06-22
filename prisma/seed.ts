@@ -51,6 +51,9 @@ const permissions = [
   { name: "adminAccount:delete", description: "Delete admin accounts" },
   { name: "dashboard:read", description: "View admin dashboards" },
   { name: "store:read", description: "View store dashboard data" },
+  { name: "store:create", description: "Create store" },
+  { name: "store:update", description: "Update store" },
+  { name: "store:delete", description: "Delete store" },
 ];
 
 const storeAdminPermissions = [
