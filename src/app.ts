@@ -9,6 +9,7 @@ import { errorHandler } from "./middlewares/errorHandler.middleware.js";
 import adminDashboardRoutes from "./modules/admin-dashboard/adminDashboard.routes.js";
 import adminManagementRoutes from "./modules/admin-management/adminManagement.routes.js";
 import adminCategoryRoutes from "./modules/admin-category/adminCategory.routes.js";
+import adminStoreRoutes from "./modules/admin-store/adminStore.routes.js";
 import adminProductRoutes from "./modules/admin-product/adminProduct.routes.js";
 import adminDiscountRoutes from "./modules/admin-discount/adminDiscount.routes.js";
 import adminVoucherRoutes from "./modules/admin-voucher/adminVoucher.routes.js";
@@ -16,6 +17,7 @@ import adminPromoReportRoutes from "./modules/admin-promo-report/adminPromoRepor
 import adminAuthRoutes from "./modules/admin-auth/adminAuth.routes.js";
 import adminStockRoutes from "./modules/admin-stock/adminStock.routes.js";
 import stockTransferRoutes from "./modules/stock-transfer/stockTransfer.routes.js";
+import adminOrderRoutes from "./modules/admin-order/adminOrder.routes.js";
 import authRouter from "./modules/auth/auth.router.js";
 import productRoutes from "./modules/product/product.routes.js";
 import categoryRoutes from "./modules/category/category.routes.js";
@@ -30,6 +32,7 @@ import geocodeRoutes from "./modules/geocode/geocode.routes.js";
 import addressRoutes from "./modules/address/address.routes.js";
 import shippingRoutes from "./modules/shipping/shipping.routes.js";
 import paymentRoutes from "./modules/payment/payment.routes.js";
+
 
 const app = express();
 
@@ -82,12 +85,14 @@ app.use("/api/admin/dashboard", adminDashboardRoutes);
 app.use("/api/admin/admin-accounts", adminManagementRoutes);
 app.use("/api/admin/users", userManagementRoutes);
 app.use("/api/admin/categories", adminCategoryRoutes);
+app.use("/api/admin/stores", adminStoreRoutes);
 app.use("/api/admin/product", adminProductRoutes);
 app.use("/api/admin/discounts", adminDiscountRoutes);
 app.use("/api/admin/vouchers", adminVoucherRoutes);
 app.use("/api/admin/promo-reports", adminPromoReportRoutes);
 app.use("/api/admin/stock/transfers", stockTransferRoutes);
 app.use("/api/admin/stock", adminStockRoutes);
+app.use("/api/admin/orders", adminOrderRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/stocks", stockRoutes);

@@ -14,7 +14,8 @@ export const getCartController = async (
 ) => {
   try {
     const { id: userId } = req.user!;
-    const data = await getCartService(userId);
+    const storeId = req.query.storeId as string | undefined;
+    const data = await getCartService(userId, storeId);
 
     res.status(200).json({ message: "Cart fetched successfully", data });
   } catch (error) {

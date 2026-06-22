@@ -1,3 +1,4 @@
+import { StockMovement } from "../../../generated/prisma/enums.js";
 import { prisma } from "../../libs/prisma/prisma.lib.js";
 import type { TPrisma } from "../../libs/prisma/prisma.types.js";
 import type { TCreateOrderPayload, TGetOrdersQueryType } from "./order.types.js";
@@ -71,11 +72,13 @@ export const findVoucherByIdAndType = async (
 
 export const findDiscountById = async (
   discountId: string,
+  storeId: string,
   db: TPrisma = prisma,
 ) => {
   return db.discount.findFirst({
     where: {
       id: discountId,
+      storeId,
       deletedAt: null,
       startDate: { lte: new Date() },
       endDate: { gte: new Date() },
@@ -144,7 +147,7 @@ export const createStockHistory = async (
     name: string;
     productId: string;
     storeId: string;
-    type: "sale" | "returnOut";
+    type: StockMovement;
     transactionId?: string;
     quantity?: number;
   },

@@ -159,6 +159,10 @@ export const createProductBodySchema = z.object({
   size: optionalStringBody,
   description: optionalStringBody,
   price: z.coerce.number().int().positive("Price must be greater than 0"),
+  weight: z.preprocess(
+    emptyStringToUndefined,
+    z.coerce.number().int().positive("Weight must be greater than 0").optional(),
+  ),
   positions: positionsBody,
 });
 
@@ -175,6 +179,10 @@ export const updateProductBodySchema = z
       .int()
       .positive("Price must be greater than 0")
       .optional(),
+    weight: z.preprocess(
+      emptyStringToUndefined,
+      z.coerce.number().int().positive("Weight must be greater than 0").optional(),
+    ),
   })
   .refine((data) => Object.keys(data).length > 0, {
     message: "At least one field is required",

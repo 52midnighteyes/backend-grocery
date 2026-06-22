@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "product" ADD COLUMN     "weight" INTEGER NOT NULL DEFAULT 1000;
