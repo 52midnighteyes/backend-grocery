@@ -2,6 +2,11 @@ import {
   ProductStockOrderByWithRelationInput,
   ProductStockWhereInput,
 } from "../../../generated/prisma/models.js";
+import {
+  attachPublicDiscountPreview,
+  hasAvailableDiscountQuota,
+} from "../discount/discount.helper.js";
+import type { TPublicDiscountCandidate } from "../discount/discount.models.js";
 import type { TGetStoreStocksQuery } from "./stock.schemas.js";
 
 export const buildStoreStockWhere = (
@@ -80,6 +85,17 @@ export const buildStoreStockWhere = (
     });
   }
 
+  if (query.minPrice !== undefined || query.maxPrice !== undefined) {
+    andConditions.push({
+      product: {
+        price: {
+          gte: query.minPrice,
+          lte: query.maxPrice,
+        },
+      },
+    });
+  }
+
   if (query.inStock === true) {
     andConditions.push({ stock: { gt: 0 } });
   }
@@ -108,9 +124,64 @@ export const buildStoreStockOrderBy = (
     return { product: { brand: query.sortOrder } };
   }
 
+  if (query.sortBy === "price") {
+    return { product: { price: query.sortOrder } };
+  }
+
   if (query.sortBy === "categoryName") {
     return { product: { category: { name: query.sortOrder } } };
   }
 
   return { [query.sortBy]: query.sortOrder };
+};
+
+export const buildInventoryProductCards = <
+  TStock extends {
+    id: string;
+    storeId: string;
+    stock: number;
+    createdAt: Date;
+    updatedAt: Date;
+    product: { id: string; price: number };
+    store: {
+      id: string;
+      name: string;
+      latitude?: unknown;
+      longitude?: unknown;
+    };
+  },
+>(
+  stocks: TStock[],
+  discounts: TPublicDiscountCandidate[],
+) => {
+  const discountByProductId = new Map(
+    discounts
+      .filter(hasAvailableDiscountQuota)
+      .map((discount) => [discount.productId, discount]),
+  );
+
+  return stocks.map((stock) => {
+    const productWithDiscount = attachPublicDiscountPreview(
+      stock.product,
+      discountByProductId.get(stock.product.id),
+    );
+
+    return {
+      ...productWithDiscount,
+      storeStock: {
+        productStockId: stock.id,
+        storeId: stock.storeId,
+        stock: stock.stock,
+        isAvailable: stock.stock > 0,
+        store: {
+          id: stock.store.id,
+          name: stock.store.name,
+          latitude: stock.store.latitude,
+          longitude: stock.store.longitude,
+        },
+        createdAt: stock.createdAt,
+        updatedAt: stock.updatedAt,
+      },
+    };
+  });
 };

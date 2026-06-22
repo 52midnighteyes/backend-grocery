@@ -49,6 +49,8 @@ export const getStoreStocksQuerySchema = z
     ),
     minStock: optionalNonNegativeNumberQuery,
     maxStock: optionalNonNegativeNumberQuery,
+    minPrice: optionalNonNegativeNumberQuery,
+    maxPrice: optionalNonNegativeNumberQuery,
     inStock: optionalBooleanQuery,
     sortBy: z
       .enum([
@@ -56,6 +58,7 @@ export const getStoreStocksQuerySchema = z
         "productName",
         "sku",
         "brand",
+        "price",
         "categoryName",
         "createdAt",
         "updatedAt",
@@ -74,6 +77,16 @@ export const getStoreStocksQuerySchema = z
     {
       message: "Minimum stock cannot be greater than maximum stock",
       path: ["minStock"],
+    },
+  )
+  .refine(
+    (data) =>
+      data.minPrice === undefined ||
+      data.maxPrice === undefined ||
+      data.minPrice <= data.maxPrice,
+    {
+      message: "Minimum price cannot be greater than maximum price",
+      path: ["minPrice"],
     },
   )
   .transform((data) => ({

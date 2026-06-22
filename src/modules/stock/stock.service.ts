@@ -1,9 +1,11 @@
 import { AppError } from "../../class/appError.js";
 import { buildPaginationMeta } from "../../helper/pagination.js";
+import { findActiveDiscountsByStoreAndProductIds } from "../discount/discount.repository.js";
 import { findStoreById } from "../store/store.repository.js";
 import {
   buildStoreStockOrderBy,
   buildStoreStockWhere,
+  buildInventoryProductCards,
 } from "./stock.helper.js";
 import {
   countStoreStocks,
@@ -33,9 +35,13 @@ export const getStoreStocksService = async (
     }),
     countStoreStocks(where),
   ]);
+  const discounts = await findActiveDiscountsByStoreAndProductIds({
+    storeId,
+    productIds: stocks.map((stock) => stock.product.id),
+  });
 
   return {
-    data: stocks,
+    data: buildInventoryProductCards(stocks, discounts),
     meta: buildPaginationMeta(page, limit, total),
   };
 };
@@ -49,6 +55,10 @@ export const getStoreStockByProductSlugService = async (
 
   const stock = await findStoreStockByProductSlug(storeId, slug);
   if (!stock) throw new AppError(404, "Product stock was not found");
+  const discounts = await findActiveDiscountsByStoreAndProductIds({
+    storeId,
+    productIds: [stock.product.id],
+  });
 
-  return stock;
+  return buildInventoryProductCards([stock], discounts)[0];
 };
