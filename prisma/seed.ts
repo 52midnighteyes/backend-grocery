@@ -43,6 +43,7 @@ const permissions = [
   { name: "voucher:update", description: "Update vouchers" },
   { name: "voucher:delete", description: "Delete vouchers" },
   { name: "promoReport:read", description: "View promo reports" },
+  { name: "salesReport:read", description: "View sales reports" },
   { name: "stock:update", description: "Update stock and stock transfers" },
   { name: "user:read", description: "View users" },
   { name: "adminAccount:create", description: "Create admin accounts" },
@@ -69,6 +70,7 @@ const storeAdminPermissions = [
   "voucher:update",
   "voucher:delete",
   "promoReport:read",
+  "salesReport:read",
   "dashboard:read",
   "store:read",
 ];
