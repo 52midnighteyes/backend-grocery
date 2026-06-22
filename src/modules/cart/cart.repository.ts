@@ -5,6 +5,7 @@ import type { TAddToCartPayload, TUpdateCartPayload } from "./cart.types.js";
 export const findCartByUserId = async (
   userId: string,
   db: TPrisma = prisma,
+  storeId?: string,
 ) => {
   return db.cart.findUnique({
     where: { userId },
@@ -21,6 +22,7 @@ export const findCartByUserId = async (
                   deletedAt: null,
                   startDate: { lte: new Date() },
                   endDate: { gte: new Date() },
+                  ...(storeId ? { storeId } : {}),
                 },
               },
             },
@@ -99,7 +101,7 @@ export const upsertCartItem = async (
     return db.cartItem.update({
       where: { id: existing.id },
       data: {
-        quantity: existing.quantity + payload.quantity,
+        quantity: existing.deletedAt ? payload.quantity : existing.quantity + payload.quantity,
         deletedAt: null,
       },
     });
