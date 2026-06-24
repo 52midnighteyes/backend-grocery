@@ -88,19 +88,23 @@ export const createOrderService = async (userId: string, payload: TCreateOrderIn
 
     let voucherDiscount = 0;
     if (payload.voucherId) {
-      const v = await findVoucherByIdAndType(payload.voucherId, "transaction", tx);
+      // Pass nearestStore.id untuk validasi store-scope voucher
+      const v = await findVoucherByIdAndType(payload.voucherId, "transaction", nearestStore.id, tx);
       if (!v) throw new AppError(400, "Voucher is invalid or expired");
       if (v.minimumTransaction && subtotal < v.minimumTransaction) {
         throw new AppError(400, `Minimum transaction for this voucher is ${v.minimumTransaction}`);
       }
       voucherDiscount = calcVoucherDiscount(v.discountType, v.value, subtotal, v.maxDiscount);
     }
+
     let deliveryDiscount = 0;
     if (payload.deliveryVoucherId) {
-      const dv = await findVoucherByIdAndType(payload.deliveryVoucherId, "delivery", tx);
+      // Pass nearestStore.id untuk validasi store-scope delivery voucher
+      const dv = await findVoucherByIdAndType(payload.deliveryVoucherId, "delivery", nearestStore.id, tx);
       if (!dv) throw new AppError(400, "Delivery voucher is invalid or expired");
       deliveryDiscount = calcVoucherDiscount(dv.discountType, dv.value, payload.deliveryFee, dv.maxDiscount);
     }
+
     const finalDeliveryFee = Math.max(0, payload.deliveryFee - deliveryDiscount);
     const totalPrice = Math.max(0, subtotal - voucherDiscount) + finalDeliveryFee;
 
@@ -120,6 +124,7 @@ export const createOrderService = async (userId: string, payload: TCreateOrderIn
     );
 
     await recordSaleHistory(itemsWithPrice, nearestStore.id, transaction.id, tx);
+
     if (payload.voucherId || payload.deliveryVoucherId) {
       if (payload.voucherId) await decrementVoucherQuantity(payload.voucherId, tx);
       if (payload.deliveryVoucherId) await decrementVoucherQuantity(payload.deliveryVoucherId, tx);
@@ -139,17 +144,20 @@ export const createOrderService = async (userId: string, payload: TCreateOrderIn
   await hardDeleteCartItemsByUserId(userId);
   return order;
 };
+
 export const getOrdersService = async (userId: string, query: TGetOrdersQuerySchema) => {
   const { data, total } = await findTransactionsByCustomer(userId, query);
   const { page, limit } = query;
   return { data, meta: { total, page, limit, totalPages: Math.ceil(total / limit) } };
 };
+
 export const getOrderDetailService = async (userId: string, orderId: string) => {
   const order = await findTransactionById(orderId);
   if (!order) throw new AppError(404, "Order not found");
   if (order.customerId !== userId) throw new AppError(403, "Forbidden");
   return order;
 };
+
 // Status yang diizinkan untuk diubah oleh user: "cancel" dan "confirmed".
 export const updateOrderStatusService = async (
   userId: string,

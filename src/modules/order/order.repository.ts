@@ -53,9 +53,13 @@ export const findProductStockByStore = async (
   });
 };
 
+// storeId dipakai untuk validasi store-scope:
+// voucher global (storeId null) bisa dipakai di mana saja,
+// voucher store-scope hanya bisa dipakai di toko yang bersangkutan.
 export const findVoucherByIdAndType = async (
   voucherId: string,
   voucherType: "transaction" | "delivery",
+  storeId: string,
   db: TPrisma = prisma,
 ) => {
   return db.voucher.findFirst({
@@ -66,6 +70,10 @@ export const findVoucherByIdAndType = async (
       startDate: { lte: new Date() },
       endDate: { gte: new Date() },
       quantity: { gt: 0 },
+      OR: [
+        { storeId: null },
+        { storeId },
+      ],
     },
   });
 };

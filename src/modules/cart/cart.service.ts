@@ -3,6 +3,7 @@ import { prisma } from "../../libs/prisma/prisma.lib.js";
 import {
   createCart,
   findCartByUserId,
+  findCartIdByUserId,
   findCartItemById,
   findCartItemByProductId,
   findProductStockByStore,
@@ -14,11 +15,9 @@ import type { TAddToCartPayload, TUpdateCartPayload } from "./cart.types.js";
 
 export const getCartService = async (userId: string, storeId?: string) => {
   const cart = await findCartByUserId(userId, undefined, storeId);
-
   if (!cart) {
     return { items: [] };
   }
-
   return cart;
 };
 
@@ -64,7 +63,10 @@ export const updateCartService = async (
     throw new AppError(404, "Cart item not found");
   }
 
-  const cart = await findCartByUserId(userId);
+  // Pakai findCartIdByUserId (ringan) — hanya butuh id untuk cek ownership.
+  // Hindari findCartByUserId yang berat karena include products/stocks/discounts
+  // semua items, bisa timeout di Neon serverless terutama kalau data discount banyak.
+  const cart = await findCartIdByUserId(userId);
 
   if (!cart || cartItem.cartId !== cart.id) {
     throw new AppError(403, "Forbidden");
@@ -83,7 +85,8 @@ export const deleteCartItemService = async (
     throw new AppError(404, "Cart item not found");
   }
 
-  const cart = await findCartByUserId(userId);
+  // Sama seperti updateCartService — hanya butuh id untuk cek ownership.
+  const cart = await findCartIdByUserId(userId);
 
   if (!cart || cartItem.cartId !== cart.id) {
     throw new AppError(403, "Forbidden");
