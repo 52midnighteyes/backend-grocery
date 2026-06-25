@@ -1,16 +1,20 @@
 import type { NextFunction, Request, Response } from "express";
 import {
   getCategorySalesReportService,
+  getCategoryTrendReportService,
   getProductRankingSalesReportService,
   getProductSalesReportService,
   getProductTrendReportService,
   getSalesReportService,
+  getTransactionSalesReportService,
 } from "./adminSalesReport.service.js";
 import type {
+  TSalesReportCategoryIdParam,
   TSalesReportProductIdParam,
   TSalesReportProductRankingQuery,
   TSalesReportProductTrendQuery,
   TSalesReportQuery,
+  TSalesReportTransactionQuery,
 } from "./adminSalesReport.schemas.js";
 
 export const getSalesReportController = async (
@@ -109,6 +113,48 @@ export const getProductTrendReportController = async (
     return res.status(200).json({
       message: "Product sales trend report fetched successfully",
       data: result.data,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getCategoryTrendReportController = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const result = await getCategoryTrendReportService(
+      req.validated?.query as TSalesReportQuery,
+      req.validated?.params as TSalesReportCategoryIdParam,
+      req.user!.id,
+    );
+
+    return res.status(200).json({
+      message: "Category sales trend report fetched successfully",
+      data: result.data,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getTransactionSalesReportController = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const result = await getTransactionSalesReportService(
+      req.validated?.query as TSalesReportTransactionQuery,
+      req.user!.id,
+    );
+
+    return res.status(200).json({
+      message: "Transaction sales report fetched successfully",
+      data: result.data,
+      meta: result.meta,
     });
   } catch (error) {
     next(error);

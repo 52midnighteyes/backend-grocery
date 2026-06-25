@@ -7,6 +7,7 @@ import type {
   TSalesReportDateRange,
   TSalesReportGranularity,
   TSalesTrendRow,
+  TTransactionReportRow,
 } from "./adminSalesReport.models.js";
 import type { TSalesReportProductRankingQuery } from "./adminSalesReport.schemas.js";
 
@@ -464,3 +465,28 @@ export const buildProductSalesComparator = (
     return String(firstValue).localeCompare(String(secondValue)) * multiplier;
   };
 };
+
+export const normalizeTransactionReportRows = (
+  rows: TTransactionReportRow[],
+) =>
+  rows.map((row) => ({
+    transactionId: row.transactionId,
+    transactionStatus: row.transactionStatus,
+    store: {
+      id: row.storeId,
+      name: row.storeName,
+    },
+    customer: {
+      id: row.customerId,
+      name: row.customerName,
+      email: row.customerEmail,
+    },
+    paidAt: row.paidAt,
+    updatedAt: row.updatedAt,
+    reportDate: row.reportDate,
+    totalItemsSold: toNumber(row.totalItemsSold),
+    productSales: toNumber(row.totalProductSales),
+    transactionVoucherDiscount: toNumber(row.transactionVoucherDiscount),
+    deliveryRevenue: toNumber(row.deliveryRevenue),
+    totalRevenue: toNumber(row.totalRevenue),
+  }));
