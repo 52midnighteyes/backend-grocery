@@ -6,6 +6,7 @@ import {
   clearStoreProductStockController,
   createStockMovementController,
   getStoreProductStockMovementsController,
+  getStockReportController,
   getStoreStockMovementByIdController,
   getStoreStockByProductSlugController,
   getStoreStockMovementsController,
@@ -14,6 +15,7 @@ import {
 import {
   clearStockBodySchema,
   createStockMovementBodySchema,
+  getStockReportQuerySchema,
   getStockMovementsQuerySchema,
   getStoreStocksQuerySchema,
   storeStockMovementDetailParamSchema,
@@ -25,6 +27,13 @@ import {
 const adminStockRoutes = Router();
 
 adminStockRoutes.use(verifyAdminAccessToken);
+
+adminStockRoutes.get(
+  "/reports",
+  permissionGuard("stockReport:read"),
+  validateSchema(getStockReportQuerySchema, "query"),
+  getStockReportController,
+);
 
 adminStockRoutes.get(
   "/store/:storeId",

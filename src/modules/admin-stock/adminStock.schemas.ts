@@ -22,6 +22,40 @@ const optionalBooleanQuery = z.preprocess((value) => {
   return value;
 }, z.boolean().optional());
 
+const dateOnlyPattern = /^\d{4}-\d{2}-\d{2}$/;
+
+const isValidDateOnly = (value: string) => {
+  if (!dateOnlyPattern.test(value)) return false;
+
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+
+  return (
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
+  );
+};
+
+const optionalUuidQuery = (message: string) =>
+  z.preprocess(
+    emptyStringToUndefined,
+    z.uuid({ error: message }).optional(),
+  );
+
+const optionalDateOnlyQuery = z.preprocess(
+  emptyStringToUndefined,
+  z
+    .string()
+    .refine(isValidDateOnly, "Date must use YYYY-MM-DD format")
+    .optional(),
+);
+
+const optionalSearchQuery = z.preprocess(
+  emptyStringToUndefined,
+  z.string().trim().min(1).optional(),
+);
+
 export const storeStockParamSchema = z.object({
   storeId: z.uuid({ error: "Store ID is invalid" }),
 });
@@ -152,6 +186,46 @@ export const getStockMovementsQuerySchema = z
     limit: Math.min(data.limit, 100),
   }));
 
+export const getStockReportQuerySchema = z
+  .object({
+    storeId: optionalUuidQuery("Store ID is invalid"),
+    startDate: optionalDateOnlyQuery,
+    endDate: optionalDateOnlyQuery,
+    productId: optionalUuidQuery("Product ID is invalid"),
+    categoryId: optionalUuidQuery("Category ID is invalid"),
+    q: optionalSearchQuery,
+    type: z.preprocess(emptyStringToUndefined, stockMovementSchema.optional()),
+    sortBy: z
+      .enum([
+        "createdAt",
+        "productName",
+        "sku",
+        "type",
+        "quantity",
+        "stockBefore",
+        "stockAfter",
+      ])
+      .optional()
+      .default("createdAt"),
+    sortOrder: z.enum(["asc", "desc"]).optional().default("desc"),
+    page: optionalNumberQuery.default(1),
+    limit: optionalNumberQuery.default(10),
+  })
+  .refine(
+    (data) =>
+      data.startDate === undefined ||
+      data.endDate === undefined ||
+      data.startDate <= data.endDate,
+    {
+      message: "Start date cannot be after end date",
+      path: ["startDate"],
+    },
+  )
+  .transform((data) => ({
+    ...data,
+    limit: Math.min(data.limit, 100),
+  }));
+
 export const createStockMovementBodySchema = z.object({
   type: stockMovementSchema,
   quantity: z.coerce.number().int().positive("Quantity must be positive"),
@@ -176,6 +250,7 @@ export type TGetStoreStocksQuery = z.infer<typeof getStoreStocksQuerySchema>;
 export type TGetStockMovementsQuery = z.infer<
   typeof getStockMovementsQuerySchema
 >;
+export type TGetStockReportQuery = z.infer<typeof getStockReportQuerySchema>;
 export type TCreateStockMovementBody = z.infer<
   typeof createStockMovementBodySchema
 >;
