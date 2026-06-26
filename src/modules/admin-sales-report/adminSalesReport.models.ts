@@ -65,3 +65,21 @@ export type TProductTrendRow = {
   totalItemsSold: bigint | number | null;
   productSales: bigint | number | null;
 };
+
+export type TTransactionReportRow = {
+  transactionId: string;
+  transactionStatus: string;
+  storeId: string;
+  storeName: string;
+  customerId: string;
+  customerName: string | null;
+  customerEmail: string | null;
+  paidAt: Date | null;
+  updatedAt: Date;
+  reportDate: Date;
+  totalItemsSold: bigint | number | null;
+  totalProductSales: bigint | number | null;
+  transactionVoucherDiscount: bigint | number | null;
+  deliveryRevenue: bigint | number | null;
+  totalRevenue: bigint | number | null;
+};
