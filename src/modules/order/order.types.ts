@@ -4,6 +4,9 @@ export type TCreateOrderItemPayload = {
   discountId?: string;
   name: string;
   totalPrice: number;
+  requiresFulfillment: boolean;
+  storeStockAtOrder: number;
+  shortageQuantity: number;
 };
 
 export type TCreateOrderPayload = {
@@ -19,6 +22,7 @@ export type TCreateOrderPayload = {
 };
 
 export type TCreateOrderInput = {
+  storeId: string;
   addressId: string;
   shippingVendor: string;
   deliveryFee: number;
