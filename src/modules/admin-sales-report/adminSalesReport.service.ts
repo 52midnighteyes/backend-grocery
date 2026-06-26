@@ -14,22 +14,29 @@ import {
   normalizeProductTrendSalesItems,
   normalizeProductTrendRows,
   normalizeSalesTrendRows,
+  normalizeTransactionReportRows,
   resolveSalesReportDateRange,
 } from "./adminSalesReport.helper.js";
 import {
+  countTransactionReportRows,
+  findCategoryForSalesReport,
   findProductForSalesReport,
+  getCategoryDetailTrendRows,
   getCategoryShareRows,
   getCategoryTrendRows,
   getProductSalesRows,
   getProductTrendSalesRows,
   getProductTrendRows,
   getSalesTrendRows,
+  getTransactionReportRows,
 } from "./adminSalesReport.repository.js";
 import type {
+  TSalesReportCategoryIdParam,
   TSalesReportProductIdParam,
   TSalesReportProductRankingQuery,
   TSalesReportProductTrendQuery,
   TSalesReportQuery,
+  TSalesReportTransactionQuery,
 } from "./adminSalesReport.schemas.js";
 
 const resolveSalesReportScope = async (
@@ -284,5 +291,83 @@ export const getProductTrendReportService = async (
       },
       chart,
     },
+  };
+};
+
+export const getCategoryTrendReportService = async (
+  params: TSalesReportQuery,
+  categoryParams: TSalesReportCategoryIdParam,
+  requesterId: string,
+) => {
+  const scope = await resolveSalesReportScope(requesterId, params.storeId);
+  const range = resolveDateRange(params);
+  const category = await findCategoryForSalesReport(categoryParams.categoryId);
+
+  if (!category) throw new AppError(404, "Category not found");
+
+  const chart = normalizeProductTrendRows(
+    await getCategoryDetailTrendRows(
+      category.id,
+      params.granularity,
+      range.startDate,
+      range.endDate,
+      scope.storeId,
+    ),
+    range.periods,
+  );
+  const totalItemsSold = chart.reduce((sum, row) => sum + row.totalItemsSold, 0);
+  const productSales = chart.reduce(
+    (sum, row) => sum + row.productSales,
+    0,
+  );
+
+  return {
+    data: {
+      filters: buildFilterResponse(params, scope, range),
+      category,
+      summary: {
+        totalItemsSold,
+        productSales,
+      },
+      chart,
+    },
+  };
+};
+
+export const getTransactionSalesReportService = async (
+  params: TSalesReportTransactionQuery,
+  requesterId: string,
+) => {
+  const scope = await resolveSalesReportScope(requesterId, params.storeId);
+  const range = resolveDateRange(params);
+  const [rows, total] = await Promise.all([
+    getTransactionReportRows(
+      range.startDate,
+      range.endDate,
+      params.page,
+      params.limit,
+      scope.storeId,
+      params.status,
+      params.q,
+    ),
+    countTransactionReportRows(
+      range.startDate,
+      range.endDate,
+      scope.storeId,
+      params.status,
+      params.q,
+    ),
+  ]);
+
+  return {
+    data: {
+      filters: {
+        ...buildFilterResponse(params, scope, range),
+        status: params.status ?? null,
+        q: params.q ?? null,
+      },
+      items: normalizeTransactionReportRows(rows),
+    },
+    meta: buildPaginationMeta(params.page, params.limit, total),
   };
 };

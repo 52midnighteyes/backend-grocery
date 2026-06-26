@@ -1,8 +1,17 @@
 import { AppError } from "../../class/appError.js";
 import { buildPaginationMeta } from "../../helper/pagination.js";
 import { prisma } from "../../libs/prisma/prisma.lib.js";
-import { findAdminAccountById } from "../user/user.repository.js";
+import { getAdminRequester } from "../admin-auth/adminRequester.service.js";
 import { findStoreById } from "../store/store.repository.js";
+import {
+  buildStockHistoryOrderBy,
+  buildStockHistoryWhere,
+  buildStockReportOrderBy,
+  buildStockReportSummary,
+  buildStockReportWhere,
+  normalizeStockReportRows,
+  resolveStockReportRange,
+} from "./adminStock.helper.js";
 import {
   buildStoreStockOrderBy,
   buildStoreStockWhere,
@@ -16,16 +25,14 @@ import {
   findStoreStockByProductId,
   findStoreStockByProductSlug,
   findStoreStocks,
+  getStockEndingSnapshot,
   updateStoreStockQuantity,
 } from "../stock/stock.repository.js";
 import type { StockMovement } from "../../../generated/prisma/enums.js";
 import type {
-  StockHistoryOrderByWithRelationInput,
-  StockHistoryWhereInput,
-} from "../../../generated/prisma/models.js";
-import type {
   TClearStockBody,
   TCreateStockMovementBody,
+  TGetStockReportQuery,
   TGetStockMovementsQuery,
   TGetStoreStocksQuery,
 } from "./adminStock.schemas.js";
@@ -41,8 +48,7 @@ const assertStoreStockAccess = async (storeId: string, requesterId: string) => {
   const store = await findStoreById(storeId);
   if (!store) throw new AppError(404, "Store was not found");
 
-  const requester = await findAdminAccountById(requesterId);
-  if (!requester) throw new AppError(401, "Unauthorized");
+  const requester = await getAdminRequester(requesterId);
 
   if (requester.role.name === "storeAdmin" && requester.storeId !== storeId) {
     throw new AppError(404, "Store was not found");
@@ -51,45 +57,33 @@ const assertStoreStockAccess = async (storeId: string, requesterId: string) => {
   return requester;
 };
 
-const buildStockHistoryWhere = (
-  storeId: string,
-  params: TGetStockMovementsQuery,
-): StockHistoryWhereInput => {
-  return {
-    storeId,
-    productId: params.productId,
-    type: params.type,
-    deletedAt: null,
-    createdAt:
-      params.startDate || params.endDate
-        ? {
-            gte: params.startDate,
-            lte: params.endDate,
-          }
-        : undefined,
-  };
-};
+const resolveStockReportScope = async (
+  requesterId: string,
+  requestedStoreId?: string,
+) => {
+  const requester = await getAdminRequester(requesterId);
 
-const buildStockHistoryOrderBy = (
-  params: TGetStockMovementsQuery,
-): StockHistoryOrderByWithRelationInput[] => {
-  const sortOrder = params.sortOrder;
-  const fallbackOrder: StockHistoryOrderByWithRelationInput = {
-    createdAt: "desc",
-  };
+  if (requester.role.name === "storeAdmin") {
+    if (!requestedStoreId) throw new AppError(400, "Store ID is required");
+    if (!requester.storeId) {
+      throw new AppError(400, "Requester is not assigned to a store");
+    }
+    if (requestedStoreId !== requester.storeId) {
+      throw new AppError(403, "Forbidden");
+    }
 
-  const orderBy: StockHistoryOrderByWithRelationInput =
-    params.sortBy === "productName"
-      ? { product: { name: sortOrder } }
-      : params.sortBy === "storeName"
-        ? { store: { name: sortOrder } }
-        : params.sortBy === "adminName"
-          ? { admin: { name: sortOrder } }
-          : { [params.sortBy]: sortOrder };
+    const store = await findStoreById(requestedStoreId);
+    if (!store) throw new AppError(404, "Store was not found");
 
-  if (params.sortBy === "createdAt") return [orderBy];
+    return { storeId: requestedStoreId };
+  }
 
-  return [orderBy, fallbackOrder];
+  if (requestedStoreId) {
+    const store = await findStoreById(requestedStoreId);
+    if (!store) throw new AppError(404, "Store was not found");
+  }
+
+  return { storeId: requestedStoreId };
 };
 
 export const getStoreStocksService = async (
@@ -116,6 +110,58 @@ export const getStoreStocksService = async (
 
   return {
     data: stocks,
+    meta: buildPaginationMeta(page, limit, total),
+  };
+};
+
+export const getStockReportService = async (
+  params: TGetStockReportQuery,
+  requesterId: string,
+) => {
+  const scope = await resolveStockReportScope(requesterId, params.storeId);
+  const range = resolveStockReportRange(params);
+  const page = params.page;
+  const limit = params.limit;
+  const skip = (page - 1) * limit;
+  const where = buildStockReportWhere(params, scope.storeId, range);
+  const orderBy = buildStockReportOrderBy(params);
+
+  const [histories, total, summaryHistories, endingSnapshot] =
+    await Promise.all([
+      findStockHistories(where, { skip, take: limit, orderBy }),
+      countStockHistories(where),
+      findStockHistories(where),
+      getStockEndingSnapshot(range.endDateExclusive, {
+        storeId: scope.storeId,
+        productId: params.productId,
+        categoryId: params.categoryId,
+        q: params.q,
+      }),
+    ]);
+
+  const items = normalizeStockReportRows(histories);
+  const summaryItems = normalizeStockReportRows(summaryHistories);
+
+  return {
+    data: {
+      filters: {
+        storeId: scope.storeId ?? null,
+        startDate: range.resolvedRange.startDate,
+        endDate: range.resolvedRange.endDate,
+        resolvedRange: range.resolvedRange,
+        productId: params.productId ?? null,
+        categoryId: params.categoryId ?? null,
+        q: params.q ?? null,
+        type: params.type ?? null,
+      },
+      summary: buildStockReportSummary(
+        summaryItems,
+        total,
+        endingSnapshot.endingStock,
+        endingSnapshot.totalProducts,
+      ),
+      items,
+    },
     meta: buildPaginationMeta(page, limit, total),
   };
 };

@@ -280,6 +280,12 @@ export const createStockHistory = async (
           name: true,
           slug: true,
           sku: true,
+          category: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
         },
       },
       store: {
@@ -326,6 +332,12 @@ export const findStockHistories = async (
           name: true,
           slug: true,
           sku: true,
+          category: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
         },
       },
       store: {
@@ -403,4 +415,53 @@ export const countStockHistories = async (
   db: TPrisma = prisma,
 ) => {
   return await db.stockHistory.count({ where });
+};
+
+export const getStockEndingSnapshot = async (
+  endDate: Date,
+  filters: {
+    storeId?: string;
+    productId?: string;
+    categoryId?: string;
+    q?: string;
+  } = {},
+) => {
+  const storeFilter = filters.storeId ?? null;
+  const productFilter = filters.productId ?? null;
+  const categoryFilter = filters.categoryId ?? null;
+  const search = filters.q ? `%${filters.q}%` : null;
+
+  const rows = await prisma.$queryRaw<
+    Array<{
+      endingStock: bigint | number | null;
+      totalProducts: bigint | number | null;
+    }>
+  >`
+    SELECT
+      COALESCE(SUM(stock_after), 0)::bigint AS "endingStock",
+      COUNT(*)::bigint AS "totalProducts"
+    FROM (
+      SELECT DISTINCT ON (sh.product_id, sh.store_id)
+        sh.product_id,
+        sh.store_id,
+        sh.stock_after
+      FROM stock_history sh
+      JOIN product p ON p.id = sh.product_id
+      JOIN category c ON c.id = p.category_id
+      JOIN store s ON s.id = sh.store_id
+      WHERE sh.deleted_at IS NULL
+        AND p.deleted_at IS NULL
+        AND c.deleted_at IS NULL
+        AND s.deleted_at IS NULL
+        AND sh.stock_after IS NOT NULL
+        AND sh.created_at < ${endDate}
+        AND (${storeFilter}::text IS NULL OR sh.store_id = ${storeFilter}::text)
+        AND (${productFilter}::text IS NULL OR sh.product_id = ${productFilter}::text)
+        AND (${categoryFilter}::text IS NULL OR c.id = ${categoryFilter}::text)
+        AND (${search}::text IS NULL OR p.name ILIKE ${search} OR p.sku ILIKE ${search})
+      ORDER BY sh.product_id, sh.store_id, sh.created_at DESC, sh.id DESC
+    ) latest_rows
+  `;
+
+  return rows[0] ?? { endingStock: 0, totalProducts: 0 };
 };

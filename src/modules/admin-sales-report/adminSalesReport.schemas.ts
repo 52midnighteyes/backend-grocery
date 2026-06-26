@@ -116,6 +116,28 @@ export const salesReportProductIdParamSchema = z.object({
   productId: z.uuid({ error: "Product ID is invalid" }),
 });
 
+export const salesReportCategoryIdParamSchema = z.object({
+  categoryId: z.uuid({ error: "Category ID is invalid" }),
+});
+
+export const salesReportTransactionQuerySchema = salesReportQueryBaseSchema
+  .extend({
+    status: z
+      .enum(["paid", "process", "onDelivery", "confirmed"])
+      .optional(),
+    q: optionalSearchQuery,
+    page: optionalNumberQuery.default(1),
+    limit: optionalNumberQuery.default(10),
+  })
+  .refine(dateRangeRefinement, {
+    message: "Start date cannot be after end date",
+    path: ["startDate"],
+  })
+  .transform((data) => ({
+    ...data,
+    limit: Math.min(data.limit, 100),
+  }));
+
 export type TSalesReportQuery = z.infer<typeof salesReportQuerySchema>;
 export type TSalesReportProductTrendQuery = z.infer<
   typeof salesReportProductTrendQuerySchema
@@ -125,4 +147,10 @@ export type TSalesReportProductRankingQuery = z.infer<
 >;
 export type TSalesReportProductIdParam = z.infer<
   typeof salesReportProductIdParamSchema
+>;
+export type TSalesReportCategoryIdParam = z.infer<
+  typeof salesReportCategoryIdParamSchema
+>;
+export type TSalesReportTransactionQuery = z.infer<
+  typeof salesReportTransactionQuerySchema
 >;

@@ -2,6 +2,7 @@ import type { NextFunction, Request, Response } from "express";
 import {
   clearStoreProductStockService,
   createStockMovementService,
+  getStockReportService,
   getStoreProductStockMovementsService,
   getStoreStockMovementByIdService,
   getStoreStockByProductSlugService,
@@ -11,6 +12,7 @@ import {
 import type {
   TClearStockBody,
   TCreateStockMovementBody,
+  TGetStockReportQuery,
   TGetStockMovementsQuery,
   TGetStoreStocksQuery,
   TStoreProductStockMovementParam,
@@ -18,6 +20,27 @@ import type {
   TStoreStockMovementDetailParam,
   TStoreStockParam,
 } from "./adminStock.schemas.js";
+
+export const getStockReportController = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const result = await getStockReportService(
+      req.validated?.query as TGetStockReportQuery,
+      req.user!.id,
+    );
+
+    return res.status(200).json({
+      message: "Stock report fetched successfully",
+      data: result.data,
+      meta: result.meta,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
 export const getStoreStocksController = async (
   req: Request,
