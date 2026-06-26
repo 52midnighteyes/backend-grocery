@@ -1,4 +1,8 @@
-import { StockMovement } from "../../../generated/prisma/enums.js";
+import {
+  DiscountType,
+  StockMovement,
+  VoucherDiscountType,
+} from "../../../generated/prisma/enums.js";
 import { prisma } from "../../libs/prisma/prisma.lib.js";
 import type { TPrisma } from "../../libs/prisma/prisma.types.js";
 import type { TCreateOrderPayload, TGetOrdersQueryType } from "./order.types.js";
@@ -10,6 +14,21 @@ export const findAddressById = async (
 ) => {
   return db.address.findFirst({
     where: { id: addressId, userId, deletedAt: null },
+  });
+};
+
+export const findStoreById = async (storeId: string, db: TPrisma = prisma) => {
+  return db.store.findFirst({
+    where: { id: storeId, deletedAt: null },
+  });
+};
+
+export const findProductById = async (
+  productId: string,
+  db: TPrisma = prisma,
+) => {
+  return db.product.findFirst({
+    where: { id: productId, deletedAt: null },
   });
 };
 
@@ -51,6 +70,25 @@ export const findProductStockByStore = async (
     where: { productId, storeId, deletedAt: null },
     include: { product: true },
   });
+};
+
+export const sumProductStockAcrossStores = async (
+  productId: string,
+  db: TPrisma = prisma,
+) => {
+  const aggregate = await db.productStock.aggregate({
+    where: {
+      productId,
+      deletedAt: null,
+      store: { deletedAt: null },
+      product: { deletedAt: null },
+    },
+    _sum: {
+      stock: true,
+    },
+  });
+
+  return aggregate._sum.stock ?? 0;
 };
 
 // storeId dipakai untuk validasi store-scope:
@@ -119,6 +157,9 @@ export const createTransaction = async (
           quantity: item.quantity,
           totalPrice: item.totalPrice,
           discountId: item.discountId ?? null,
+          requiresFulfillment: item.requiresFulfillment,
+          storeStockAtOrder: item.storeStockAtOrder,
+          shortageQuantity: item.shortageQuantity,
         })),
       },
     },
@@ -135,6 +176,25 @@ export const decrementProductStock = async (
   return db.productStock.updateMany({
     where: { productId, storeId, deletedAt: null },
     data: { stock: { decrement: quantity } },
+  });
+};
+
+export const decrementProductStockByStockId = async (
+  stockId: string,
+  quantity: number,
+  db: TPrisma = prisma,
+) => {
+  return db.productStock.updateMany({
+    where: {
+      id: stockId,
+      deletedAt: null,
+      stock: { gte: quantity },
+    },
+    data: {
+      stock: {
+        decrement: quantity,
+      },
+    },
   });
 };
 
@@ -168,17 +228,53 @@ export const decrementVoucherQuantity = async (
   voucherId: string,
   db: TPrisma = prisma,
 ) => {
-  return db.voucher.update({
-    where: { id: voucherId },
+  return db.voucher.updateMany({
+    where: { id: voucherId, quantity: { gt: 0 } },
     data: { quantity: { decrement: 1 } },
+  });
+};
+
+export const incrementDiscountUsedQuota = async (
+  params: {
+    discountId: string;
+    quotaUsage: number;
+    quota: number | null;
+  },
+  db: TPrisma = prisma,
+) => {
+  if (params.quotaUsage <= 0) return { count: 1 };
+
+  return db.discount.updateMany({
+    where: {
+      id: params.discountId,
+      ...(params.quota === null
+        ? {}
+        : { usedQuota: { lte: params.quota - params.quotaUsage } }),
+    },
+    data: {
+      usedQuota: {
+        increment: params.quotaUsage,
+      },
+    },
   });
 };
 
 export const createVoucherHistory = async (
   data: {
     transactionId: string;
-    voucherId?: string;
-    deliveryVoucherId?: string;
+    storeId: string;
+    voucherId?: string | null;
+    deliveryVoucherId?: string | null;
+    voucherName?: string | null;
+    voucherCode?: string | null;
+    voucherDiscountType?: VoucherDiscountType | null;
+    voucherDiscountValue?: number | null;
+    voucherDiscountAmount?: number | null;
+    deliveryVoucherName?: string | null;
+    deliveryVoucherCode?: string | null;
+    deliveryVoucherDiscountType?: VoucherDiscountType | null;
+    deliveryVoucherValue?: number | null;
+    deliveryVoucherAmount?: number | null;
   },
   db: TPrisma = prisma,
 ) => {
@@ -186,7 +282,19 @@ export const createVoucherHistory = async (
 };
 
 export const createDiscountHistory = async (
-  data: { transactionId: string; discountId: string },
+  data: {
+    transactionId: string;
+    transactionItemId: string;
+    discountId: string;
+    productId: string;
+    storeId: string;
+    discountName: string;
+    discountType: DiscountType;
+    discountValue: number | null;
+    buyQuantity: number | null;
+    getQuantity: number | null;
+    discountAmount: number;
+  },
   db: TPrisma = prisma,
 ) => {
   return db.discountHistory.create({ data });

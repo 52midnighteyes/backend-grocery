@@ -10,6 +10,7 @@ export const orderItemSchema = z.object({
 });
 
 export const createOrderSchema = z.object({
+  storeId: z.string().uuid("Store ID is not valid"),
   addressId: z.string().uuid("Address ID is not valid"),
   shippingVendor: z.string().nonempty("Shipping vendor is required"),
   deliveryFee: z

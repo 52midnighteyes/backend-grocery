@@ -2,14 +2,18 @@ import { prisma } from "../../libs/prisma/prisma.lib.js";
 import { AppError } from "../../class/appError.js";
 import type { TCreateOrderInput } from "./order.types.js";
 import type { TGetOrdersQuerySchema } from "./order.schemas.js";
+import type { VoucherDiscountType } from "../../../generated/prisma/enums.js";
 import {
   findAddressById,
-  findNearestStore,
+  findStoreById,
+  findProductById,
   findProductStockByStore,
+  sumProductStockAcrossStores,
   findVoucherByIdAndType,
   findDiscountById,
   createTransaction,
   decrementVoucherQuantity,
+  incrementDiscountUsedQuota,
   createVoucherHistory,
   findTransactionById,
   findTransactionsByCustomer,
@@ -21,57 +25,90 @@ import {
   updateStoreStockQuantity,
 } from "../stock/stock.repository.js";
 import { hardDeleteCartItemsByUserId } from "../cart/cart.repository.js";
-import { DiscountType } from "../../../generated/prisma/enums.js";
 import {
   type ItemWithPrice,
+  calcProductDiscount,
   calcVoucherDiscount,
   recordSaleHistory,
 } from "./order.helper.js";
 
 export const createOrderService = async (userId: string, payload: TCreateOrderInput) => {
+  const productIds = new Set<string>();
+  for (const item of payload.items) {
+    if (productIds.has(item.productId)) {
+      throw new AppError(400, "Duplicate products are not allowed in one order");
+    }
+    productIds.add(item.productId);
+  }
+
   const address = await findAddressById(payload.addressId, userId);
   if (!address) throw new AppError(404, "Address not found");
 
-  const nearestStore = await findNearestStore(address.latitude, address.longitude);
-  if (!nearestStore) throw new AppError(404, "No store available near your address");
+  const store = await findStoreById(payload.storeId);
+  if (!store) throw new AppError(404, "Store not found");
 
   const order = await prisma.$transaction(async (tx) => {
     let subtotal = 0;
     const itemsWithPrice: ItemWithPrice[] = [];
 
     for (const item of payload.items) {
-      const stock = await findProductStockByStore(item.productId, nearestStore.id, tx);
-      if (!stock) {
-        const product = await tx.product.findFirst({
-          where: { id: item.productId },
-          select: { name: true },
-        });
-        throw new AppError(
-          404,
-          `Produk "${product?.name ?? "yang dipilih"}" tidak tersedia di toko terdekat`,
-        );
-      }
-      if (stock.stock < item.quantity) {
-        throw new AppError(400, `Insufficient stock for product: ${stock.product.name}`);
+      const [stock, product, totalStock] = await Promise.all([
+        findProductStockByStore(item.productId, payload.storeId, tx),
+        findProductById(item.productId, tx),
+        sumProductStockAcrossStores(item.productId, tx),
+      ]);
+
+      if (!product) {
+        throw new AppError(404, "Product not found");
       }
 
-      let itemTotal = stock.product.price * item.quantity;
+      if (totalStock < item.quantity) {
+        throw new AppError(400, `Insufficient stock for product: ${product.name}`);
+      }
+
+      const storeStockAtOrder = stock?.stock ?? 0;
+      const shortageQuantity = Math.max(item.quantity - storeStockAtOrder, 0);
+      const requiresFulfillment = shortageQuantity > 0;
+
+      let itemTotal = product.price * item.quantity;
+      let discountSnapshot: ItemWithPrice["discountSnapshot"];
+      let discountQuota: number | null = null;
+
       if (item.discountId) {
-        const discount = await findDiscountById(item.discountId, nearestStore.id, tx);
+        const discount = await findDiscountById(item.discountId, payload.storeId, tx);
         if (!discount || discount.productId !== item.productId) {
-          throw new AppError(400, `Invalid discount for product: ${stock.product.name}`);
+          throw new AppError(400, `Invalid discount for product: ${product.name}`);
         }
-        if (discount.type === DiscountType.percentage && discount.value) {
-          itemTotal -= Math.floor((itemTotal * discount.value) / 100);
-        } else if (discount.type === DiscountType.nominal && discount.value) {
-          itemTotal = Math.max(0, itemTotal - discount.value * item.quantity);
-        } else if (discount.type === DiscountType.buyXGetY) {
-          const buyQty = discount.buyQuantity ?? 1;
-          const getQty = discount.getQuantity ?? 1;
-          const sets = Math.floor(item.quantity / (buyQty + getQty));
-          const paidQty = sets * buyQty + Math.min(item.quantity % (buyQty + getQty), buyQty);
-          itemTotal = stock.product.price * paidQty;
+
+        const discountCalculation = calcProductDiscount({
+          type: discount.type,
+          value: discount.value,
+          buyQuantity: discount.buyQuantity,
+          getQuantity: discount.getQuantity,
+          price: product.price,
+          quantity: item.quantity,
+        });
+
+        if (
+          discount.quota !== null &&
+          discountCalculation.quotaUsage > 0 &&
+          discount.usedQuota + discountCalculation.quotaUsage > discount.quota
+        ) {
+          throw new AppError(400, `Discount quota is insufficient for product: ${product.name}`);
         }
+
+        itemTotal = discountCalculation.itemTotal;
+        discountQuota = discount.quota;
+        discountSnapshot = {
+          discountId: discount.id,
+          discountName: discount.name,
+          discountType: discount.type,
+          discountValue: discount.value,
+          buyQuantity: discount.buyQuantity,
+          getQuantity: discount.getQuantity,
+          discountAmount: discountCalculation.discountAmount,
+          quotaUsage: discountCalculation.quotaUsage,
+        };
       }
 
       subtotal += itemTotal;
@@ -79,30 +116,70 @@ export const createOrderService = async (userId: string, payload: TCreateOrderIn
         productId: item.productId,
         quantity: item.quantity,
         discountId: item.discountId,
-        name: stock.product.name,
+        name: product.name,
         totalPrice: itemTotal,
-        stockId: stock.id,
-        stockBefore: stock.stock,
+        stockId: stock?.id,
+        stockBefore: storeStockAtOrder,
+        requiresFulfillment,
+        storeStockAtOrder,
+        shortageQuantity,
+        discountSnapshot,
+        discountQuota,
       });
     }
 
     let voucherDiscount = 0;
+    let voucherHistoryData: {
+      voucherId: string;
+      voucherName: string;
+      voucherCode: string;
+      voucherDiscountType: VoucherDiscountType;
+      voucherDiscountValue: number;
+      voucherDiscountAmount: number;
+    } | null = null;
+
     if (payload.voucherId) {
-      // Pass nearestStore.id untuk validasi store-scope voucher
-      const v = await findVoucherByIdAndType(payload.voucherId, "transaction", nearestStore.id, tx);
+      const v = await findVoucherByIdAndType(payload.voucherId, "transaction", payload.storeId, tx);
       if (!v) throw new AppError(400, "Voucher is invalid or expired");
-      if (v.minimumTransaction && subtotal < v.minimumTransaction) {
+      if (v.minimumTransaction !== null && subtotal < v.minimumTransaction) {
         throw new AppError(400, `Minimum transaction for this voucher is ${v.minimumTransaction}`);
       }
       voucherDiscount = calcVoucherDiscount(v.discountType, v.value, subtotal, v.maxDiscount);
+      voucherHistoryData = {
+        voucherId: v.id,
+        voucherName: v.name,
+        voucherCode: v.code,
+        voucherDiscountType: v.discountType,
+        voucherDiscountValue: v.value,
+        voucherDiscountAmount: voucherDiscount,
+      };
     }
 
     let deliveryDiscount = 0;
+    let deliveryVoucherHistoryData: {
+      deliveryVoucherId: string;
+      deliveryVoucherName: string;
+      deliveryVoucherCode: string;
+      deliveryVoucherDiscountType: VoucherDiscountType;
+      deliveryVoucherValue: number;
+      deliveryVoucherAmount: number;
+    } | null = null;
+
     if (payload.deliveryVoucherId) {
-      // Pass nearestStore.id untuk validasi store-scope delivery voucher
-      const dv = await findVoucherByIdAndType(payload.deliveryVoucherId, "delivery", nearestStore.id, tx);
+      const dv = await findVoucherByIdAndType(payload.deliveryVoucherId, "delivery", payload.storeId, tx);
       if (!dv) throw new AppError(400, "Delivery voucher is invalid or expired");
+      if (dv.minimumTransaction !== null && payload.deliveryFee < dv.minimumTransaction) {
+        throw new AppError(400, `Minimum delivery fee for this voucher is ${dv.minimumTransaction}`);
+      }
       deliveryDiscount = calcVoucherDiscount(dv.discountType, dv.value, payload.deliveryFee, dv.maxDiscount);
+      deliveryVoucherHistoryData = {
+        deliveryVoucherId: dv.id,
+        deliveryVoucherName: dv.name,
+        deliveryVoucherCode: dv.code,
+        deliveryVoucherDiscountType: dv.discountType,
+        deliveryVoucherValue: dv.value,
+        deliveryVoucherAmount: deliveryDiscount,
+      };
     }
 
     const finalDeliveryFee = Math.max(0, payload.deliveryFee - deliveryDiscount);
@@ -111,7 +188,7 @@ export const createOrderService = async (userId: string, payload: TCreateOrderIn
     const transaction = await createTransaction(
       {
         customerId: userId,
-        storeId: nearestStore.id,
+        storeId: payload.storeId,
         addressId: payload.addressId,
         shippingVendor: payload.shippingVendor,
         deliveryFee: finalDeliveryFee,
@@ -123,16 +200,52 @@ export const createOrderService = async (userId: string, payload: TCreateOrderIn
       tx,
     );
 
-    await recordSaleHistory(itemsWithPrice, nearestStore.id, transaction.id, tx);
+    for (const item of itemsWithPrice) {
+      if (!item.discountSnapshot || item.discountSnapshot.quotaUsage <= 0) continue;
+
+      const result = await incrementDiscountUsedQuota(
+        {
+          discountId: item.discountSnapshot.discountId,
+          quotaUsage: item.discountSnapshot.quotaUsage,
+          quota: item.discountQuota,
+        },
+        tx,
+      );
+
+      if (result.count === 0) {
+        throw new AppError(400, `Discount quota is insufficient for product: ${item.name}`);
+      }
+    }
+
+    await recordSaleHistory(itemsWithPrice, payload.storeId, transaction.id, transaction.items, tx);
 
     if (payload.voucherId || payload.deliveryVoucherId) {
-      if (payload.voucherId) await decrementVoucherQuantity(payload.voucherId, tx);
-      if (payload.deliveryVoucherId) await decrementVoucherQuantity(payload.deliveryVoucherId, tx);
+      if (payload.voucherId) {
+        const result = await decrementVoucherQuantity(payload.voucherId, tx);
+        if (result.count === 0) throw new AppError(400, "Voucher is invalid or expired");
+      }
+      if (payload.deliveryVoucherId) {
+        const result = await decrementVoucherQuantity(payload.deliveryVoucherId, tx);
+        if (result.count === 0) throw new AppError(400, "Delivery voucher is invalid or expired");
+      }
+
       await createVoucherHistory(
         {
           transactionId: transaction.id,
-          voucherId: payload.voucherId,
-          deliveryVoucherId: payload.deliveryVoucherId,
+          storeId: payload.storeId,
+          voucherId: voucherHistoryData?.voucherId ?? null,
+          voucherName: voucherHistoryData?.voucherName ?? null,
+          voucherCode: voucherHistoryData?.voucherCode ?? null,
+          voucherDiscountType: voucherHistoryData?.voucherDiscountType ?? null,
+          voucherDiscountValue: voucherHistoryData?.voucherDiscountValue ?? null,
+          voucherDiscountAmount: voucherHistoryData?.voucherDiscountAmount ?? null,
+          deliveryVoucherId: deliveryVoucherHistoryData?.deliveryVoucherId ?? null,
+          deliveryVoucherName: deliveryVoucherHistoryData?.deliveryVoucherName ?? null,
+          deliveryVoucherCode: deliveryVoucherHistoryData?.deliveryVoucherCode ?? null,
+          deliveryVoucherDiscountType:
+            deliveryVoucherHistoryData?.deliveryVoucherDiscountType ?? null,
+          deliveryVoucherValue: deliveryVoucherHistoryData?.deliveryVoucherValue ?? null,
+          deliveryVoucherAmount: deliveryVoucherHistoryData?.deliveryVoucherAmount ?? null,
         },
         tx,
       );
@@ -176,6 +289,8 @@ export const updateOrderStatusService = async (
       await updateTransactionStatus(orderId, "cancel", tx);
 
       for (const item of order.items) {
+        if (item.requiresFulfillment) continue;
+
         const stock = await findStoreStockByProductId(order.storeId, item.productId, tx);
         if (!stock) continue;
         const stockBefore = stock.stock;
