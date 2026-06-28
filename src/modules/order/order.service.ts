@@ -283,8 +283,8 @@ export const updateOrderStatusService = async (
     if (order.customerId !== userId) throw new AppError(403, "Forbidden");
 
     if (status === "cancel") {
-      if (!["waitingPayment", "waitingConfirmation"].includes(order.transactionStatus)) {
-        throw new AppError(400, "Order can only be cancelled before payment is confirmed by admin");
+      if (order.transactionStatus !== "waitingPayment") {
+        throw new AppError(400, "Order can only be cancelled before uploading payment proof");
       }
       await updateTransactionStatus(orderId, "cancel", tx);
 
@@ -306,7 +306,7 @@ export const updateOrderStatusService = async (
             store: { connect: { id: order.storeId } },
             transaction: { connect: { id: orderId } },
             type: "returnIn",
-            notes: "Pembatalan pesanan oleh user",
+            notes: "Order cancelled by user",
           },
           tx,
         );

@@ -23,13 +23,17 @@ export const startAutoCancelOrderJob = () => {
           await updateTransactionStatus(order.id, "cancel", tx);
 
           for (const item of order.items) {
+            // Skip fulfillment items — stok toko terdekat tidak pernah di-decrement
+            // untuk item ini saat order dibuat, jadi tidak perlu di-restore.
+            if (item.requiresFulfillment) continue;
+
             await incrementProductStock(item.productId, order.storeId, item.quantity, tx);
             await createStockHistory(
               {
-                name: `Pembatalan Otomatis - ${item.name}`,
+                name: `Auto Cancelled - ${item.name}`,
                 productId: item.productId,
                 storeId: order.storeId,
-                type: "returnOut",
+                type: "returnIn",
                 transactionId: order.id,
                 quantity: item.quantity,
               },
