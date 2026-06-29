@@ -31,3 +31,57 @@ export const findUserByEmailWithRole = (email: string) => prisma.user.findUnique
 export const findUserByGoogleId = (googleId: string) => prisma.user.findUnique({ where: { googleId }, include: { role: true } });
 
 export const createGoogleUser = (name: string, email: string, googleId: string, roleId: string, referralCode: string) => prisma.user.create({data: { name, email, googleId, roleId, referralCode, isVerified: true },include: { role: true },});
+
+export const findReferralHistoryByReferredId = (referredId: string) =>
+    prisma.referralHistory.findUnique({
+        where: { referredId },
+        include: { referrer: true },
+    });
+
+export const getOrCreateReferralTemplate = () =>
+    prisma.voucher.upsert({
+        where: { code: "REF-FREE-DELIVERY" },
+        create: {
+            name: "Referral Reward - Free Delivery",
+            code: "REF-FREE-DELIVERY",
+            quantity: 9999999,
+            discountType: "percentage",
+            voucherType: "delivery",
+            value: 100,
+            startDate: new Date("2020-01-01"),
+            endDate: null,
+        },
+        update: {},
+    });
+
+export const createUserVoucher = (userId: string, voucherId: string, expiresAt: Date) =>
+    prisma.userVoucher.create({ data: { userId, voucherId, expiresAt } });
+
+export const findUserVouchers = (userId: string) =>
+    prisma.userVoucher.findMany({
+        where: {
+            userId,
+            isUsed: false,
+            deletedAt: null,
+            voucher: { deletedAt: null },
+            OR: [
+                { expiresAt: null },
+                { expiresAt: { gte: new Date() } },
+            ],
+        },
+        include: {
+            voucher: {
+                select: {
+                    id: true,
+                    name: true,
+                    code: true,
+                    discountType: true,
+                    voucherType: true,
+                    value: true,
+                    minimumTransaction: true,
+                    endDate: true,
+                },
+            },
+        },
+        orderBy: { expiresAt: "asc" },
+    });

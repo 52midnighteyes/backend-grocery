@@ -162,6 +162,7 @@ model User {
   stockTransferRequestsCancelled StockTransferRequest[] @relation("StockTransferCancelledBy")
   referralsMade                  ReferralHistory[]      @relation("Referrer")
   referralsReceived              ReferralHistory[]      @relation("Referred")
+  userVouchers                   UserVoucher[]
 
   @@map("user")
 }
@@ -407,16 +408,18 @@ model Voucher {
   voucherType        VoucherType         @map("voucher_type")
   value              Int
   startDate          DateTime            @map("start_date")
-  endDate            DateTime            @map("end_date")
+  endDate            DateTime?           @map("end_date")
   createdAt          DateTime            @default(now()) @map("created_at")
   updatedAt          DateTime            @updatedAt @map("updated_at")
   deletedAt          DateTime?           @map("deleted_at")
 
   store                         Store?           @relation(fields: [storeId], references: [id])
+  userVouchers                  UserVoucher[]
   transactionsAsVoucher         Transaction[]    @relation("TransactionVoucher")
   transactionsAsDeliveryVoucher Transaction[]    @relation("DeliveryVoucher")
   voucherHistories              VoucherHistory[] @relation("VoucherHistoryTransaction")
   deliveryVoucherHistories      VoucherHistory[] @relation("VoucherHistoryDelivery")
+
 
   @@index([storeId])
   @@index([startDate, endDate])
@@ -559,6 +562,25 @@ model ReferralHistory {
 
   @@unique([referrerId, referredId])
   @@map("referral_history")
+}
+
+model UserVoucher {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  voucherId String    @map("voucher_id")
+  isUsed    Boolean   @default(false) @map("is_used")
+  usedAt    DateTime? @map("used_at")
+  expiresAt DateTime? @map("expires_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  user    User    @relation(fields: [userId], references: [id])
+  voucher Voucher @relation(fields: [voucherId], references: [id])
+
+  @@unique([userId, voucherId])
+  @@index([userId])
+  @@map("user_voucher")
 }
 
 model Cart {
