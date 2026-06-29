@@ -29,6 +29,7 @@ import {
     changePasswordService,
     refreshTokenService,
     googleAuthService,
+    getUserVouchersService,
 } from "./auth.service.js";
 
 export const register = async (req: Request, res: Response, next: NextFunction) => {
@@ -147,5 +148,12 @@ export const googleAuth = async (req: Request, res: Response, next: NextFunction
         const payload = await googleAuthService(credential);
         setAuthCookies(res, payload);
         res.status(200).json({ message: "Login berhasil" });
+    } catch (error) { next(error); }
+};
+
+export const getUserVouchers = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const vouchers = await getUserVouchersService(req.user!.id);
+        res.status(200).json({ data: vouchers });
     } catch (error) { next(error); }
 };

@@ -25,7 +25,11 @@ import {
     invalidateForgotPasswordToken,
     findUserById,
     createGoogleUser,
-    findUserByGoogleId
+    findUserByGoogleId,
+    findReferralHistoryByReferredId,
+    getOrCreateReferralTemplate,
+    createUserVoucher,
+    findUserVouchers,
 } from "./auth.repository.js"
 import type { TJwtTokenPayload } from "../../middlewares/tokenVerification/tokenVerification.schema.js";
 import { randomBytes } from "crypto";
@@ -70,6 +74,26 @@ const handleReferral = async (newUserId:string, referralCode:string) => {
     await createReferralHistory(referrer.id, newUserId)
 };
 
+const issueReferralVouchers = async (referrerId: string, referredId: string, referrerEmail: string, referredEmail: string, referrerName: string, referredName: string) => {
+    const template = await getOrCreateReferralTemplate();
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+    await createUserVoucher(referrerId, template.id, expiresAt);
+    await createUserVoucher(referredId, template.id, expiresAt);
+
+    const html = await compileHandlebars(EMAIL_TEMPLATES_DIR, "referral-reward.mail.hbs", {
+        name: referrerName,
+        voucherCode: template.code,
+    });
+    await sendMail(referrerEmail, "Kamu dapat voucher gratis ongkir!", html, "EMAIL_VERIFICATION");
+
+    const html2 = await compileHandlebars(EMAIL_TEMPLATES_DIR, "referral-reward.mail.hbs", {
+        name: referredName,
+        voucherCode: template.code,
+    });
+    await sendMail(referredEmail, "Selamat datang! Ini voucher gratis ongkir kamu", html2, "EMAIL_VERIFICATION");
+};
+
 export const verifyEmailService = async (token:string, password:string) => {
     const record = await findRegisterToken(token);
     if (!record) throw new AppError(400, "Token tidak valid atau sudah digunakan");
@@ -82,13 +106,25 @@ export const verifyEmailService = async (token:string, password:string) => {
     const hashedPassword = await argon2.hash(password);
 
     const newReferralCode = randomBytes(4).toString("hex").toUpperCase();
-    await updateUser(payload.id, { 
-        password: hashedPassword, 
+    const updatedUser = await updateUser(payload.id, {
+        password: hashedPassword,
         isVerified: true,
         referralCode: newReferralCode
     });
 
-    await invalidateRegisterToken(record.id)
+    await invalidateRegisterToken(record.id);
+
+    const referralHistory = await findReferralHistoryByReferredId(payload.id);
+    if (referralHistory) {
+        await issueReferralVouchers(
+            referralHistory.referrerId,
+            payload.id,
+            referralHistory.referrer.email,
+            updatedUser.email,
+            referralHistory.referrer.name,
+            updatedUser.name,
+        );
+    }
 }
 
 export const resendVerificationService = async (email: string) => {
@@ -206,6 +242,10 @@ export const verifyEmailChangeService = async (token: string) => {
     const payload = Jwt.verify(token, VERIFY_TOKEN_SECRET) as { id: string };
     await updateUser(payload.id, { isVerified: true });
     await invalidateRegisterToken(record.id);
+};
+
+export const getUserVouchersService = async (userId: string) => {
+    return findUserVouchers(userId);
 };
 
 export const changePasswordService = async (userId: string, oldPassword: string, newPassword: string) => {

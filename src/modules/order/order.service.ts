@@ -18,6 +18,9 @@ import {
   findTransactionById,
   findTransactionsByCustomer,
   updateTransactionStatus,
+  findUserVoucherByUserAndVoucher,
+  markUserVoucherAsUsed,
+  voucherHasAnyOwner,
 } from "./order.repository.js";
 import {
   createStockHistory,
@@ -138,9 +141,18 @@ export const createOrderService = async (userId: string, payload: TCreateOrderIn
       voucherDiscountAmount: number;
     } | null = null;
 
+    let isPersonalVoucher = false;
     if (payload.voucherId) {
       const v = await findVoucherByIdAndType(payload.voucherId, "transaction", payload.storeId, tx);
       if (!v) throw new AppError(400, "Voucher is invalid or expired");
+      const hasOwner = await voucherHasAnyOwner(v.id, tx);
+      if (hasOwner) {
+        const uv = await findUserVoucherByUserAndVoucher(userId, v.id, tx);
+        if (!uv) throw new AppError(403, "Voucher ini bukan milikmu");
+        if (uv.isUsed) throw new AppError(400, "Voucher sudah pernah digunakan");
+        if (uv.expiresAt && uv.expiresAt < new Date()) throw new AppError(400, "Voucher sudah kadaluarsa");
+        isPersonalVoucher = true;
+      }
       if (v.minimumTransaction !== null && subtotal < v.minimumTransaction) {
         throw new AppError(400, `Minimum transaction for this voucher is ${v.minimumTransaction}`);
       }
@@ -165,9 +177,18 @@ export const createOrderService = async (userId: string, payload: TCreateOrderIn
       deliveryVoucherAmount: number;
     } | null = null;
 
+    let isPersonalDeliveryVoucher = false;
     if (payload.deliveryVoucherId) {
       const dv = await findVoucherByIdAndType(payload.deliveryVoucherId, "delivery", payload.storeId, tx);
       if (!dv) throw new AppError(400, "Delivery voucher is invalid or expired");
+      const hasOwner = await voucherHasAnyOwner(dv.id, tx);
+      if (hasOwner) {
+        const uv = await findUserVoucherByUserAndVoucher(userId, dv.id, tx);
+        if (!uv) throw new AppError(403, "Voucher pengiriman ini bukan milikmu");
+        if (uv.isUsed) throw new AppError(400, "Voucher pengiriman sudah pernah digunakan");
+        if (uv.expiresAt && uv.expiresAt < new Date()) throw new AppError(400, "Voucher pengiriman sudah kadaluarsa");
+        isPersonalDeliveryVoucher = true;
+      }
       if (dv.minimumTransaction !== null && payload.deliveryFee < dv.minimumTransaction) {
         throw new AppError(400, `Minimum delivery fee for this voucher is ${dv.minimumTransaction}`);
       }
@@ -221,12 +242,20 @@ export const createOrderService = async (userId: string, payload: TCreateOrderIn
 
     if (payload.voucherId || payload.deliveryVoucherId) {
       if (payload.voucherId) {
-        const result = await decrementVoucherQuantity(payload.voucherId, tx);
-        if (result.count === 0) throw new AppError(400, "Voucher is invalid or expired");
+        if (isPersonalVoucher) {
+          await markUserVoucherAsUsed(userId, payload.voucherId, tx);
+        } else {
+          const result = await decrementVoucherQuantity(payload.voucherId, tx);
+          if (result.count === 0) throw new AppError(400, "Voucher is invalid or expired");
+        }
       }
       if (payload.deliveryVoucherId) {
-        const result = await decrementVoucherQuantity(payload.deliveryVoucherId, tx);
-        if (result.count === 0) throw new AppError(400, "Delivery voucher is invalid or expired");
+        if (isPersonalDeliveryVoucher) {
+          await markUserVoucherAsUsed(userId, payload.deliveryVoucherId, tx);
+        } else {
+          const result = await decrementVoucherQuantity(payload.deliveryVoucherId, tx);
+          if (result.count === 0) throw new AppError(400, "Delivery voucher is invalid or expired");
+        }
       }
 
       await createVoucherHistory(

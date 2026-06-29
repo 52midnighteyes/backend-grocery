@@ -14,16 +14,10 @@ export const buildPublicVoucherWhere = (
     startDate: {
       lte: now,
     },
-    endDate: {
-      gte: now,
-    },
-    OR: [
-      {
-        storeId: null,
-      },
-      {
-        storeId,
-      },
+    userVouchers: { none: {} },
+    AND: [
+      { OR: [{ storeId: null }, { storeId }] },
+      { OR: [{ endDate: null }, { endDate: { gte: now } }] },
     ],
   };
 };
