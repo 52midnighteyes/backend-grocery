@@ -16,7 +16,7 @@ import type { TGetStoreStocksQuery } from "./stock.schemas.js";
 
 export const getStoreStocksService = async (
   storeId: string,
-  params: TGetStoreStocksQuery,
+  params: TGetStoreStocksQuery
 ) => {
   const store = await findStoreById(storeId);
   if (!store) throw new AppError(404, "Store was not found");
@@ -48,7 +48,7 @@ export const getStoreStocksService = async (
 
 export const getStoreStockByProductSlugService = async (
   storeId: string,
-  slug: string,
+  slug: string
 ) => {
   const store = await findStoreById(storeId);
   if (!store) throw new AppError(404, "Store was not found");

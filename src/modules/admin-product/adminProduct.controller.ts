@@ -11,12 +11,10 @@ import {
 } from "./adminProduct.service.js";
 import type {
   TCreateProductBody,
-  TGetProductsQuery,
+  TGetAdminProductsQuery,
   TProductSlugParam,
   TUpdateProductBody,
   TUpdateProductImagePositionsBody,
-} from "../product/product.schemas.js";
-import type {
   TPatchProductImagesBody,
   TProductImageParam,
 } from "./adminProduct.schemas.js";
@@ -52,7 +50,7 @@ export const getAdminProductsController = async (
 ) => {
   try {
     const result = await getAdminProductsService(
-      req.validated?.query as TGetProductsQuery,
+      req.validated?.query as TGetAdminProductsQuery,
       req.user!.id,
     );
 

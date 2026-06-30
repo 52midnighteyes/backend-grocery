@@ -1,4 +1,5 @@
 import { AppError } from "../../class/appError.js";
+import { buildPaginationMeta } from "../../helper/pagination.js";
 import { generateSku } from "../../helper/sku-generator.js";
 import { createSlug } from "../../helper/stringGenerator.js";
 import { prisma } from "../../libs/prisma/prisma.lib.js";
@@ -10,12 +11,16 @@ import {
   deleteProductImagesFromCloudinary,
   getRemovedProductImageIds,
   getAdminProductScope,
+  buildAdminProductListOrderBy,
+  buildAdminProductListWhere,
   uploadProductImages,
 } from "./adminProduct.helper.js";
 import {
+  countAdminProducts,
   createProductStocks,
   createProductImages,
   createProduct,
+  findAdminProducts,
   findActiveStoreIds,
   findCategoryById,
   findAdminProductBySlug,
@@ -31,26 +36,43 @@ import {
   updateProduct,
   updateProductImagePosition,
 } from "./adminProduct.repository.js";
-import { getProductsService } from "../product/product.service.js";
 import type {
   TCreateProductBody,
-  TGetProductsQuery,
+  TGetAdminProductsQuery,
   TUpdateProductBody,
   TUpdateProductImagePositionsBody,
-} from "../product/product.schemas.js";
-import type { TPatchProductImagesBody } from "./adminProduct.schemas.js";
+  TPatchProductImagesBody,
+} from "./adminProduct.schemas.js";
 import type { TProductImageUploadFiles } from "./adminProduct.models.js";
 
 export const getAdminProductsService = async (
-  params: TGetProductsQuery,
+  params: TGetAdminProductsQuery,
   requesterId: string
 ) => {
   const scope = await getAdminProductScope(requesterId);
-
-  return await getProductsService({
+  const scopedParams = {
     ...params,
     storeId: scope.storeId ?? params.storeId,
-  });
+  };
+  const page = scopedParams.page;
+  const limit = scopedParams.limit;
+  const skip = (page - 1) * limit;
+  const where = buildAdminProductListWhere(scopedParams);
+  const orderBy = buildAdminProductListOrderBy(scopedParams);
+
+  const [products, total] = await Promise.all([
+    findAdminProducts(where, {
+      skip,
+      take: limit,
+      orderBy,
+    }),
+    countAdminProducts(where),
+  ]);
+
+  return {
+    data: products,
+    meta: buildPaginationMeta(page, limit, total),
+  };
 };
 
 export const createProductService = async (
@@ -96,7 +118,7 @@ export const createProductService = async (
           description: params.description,
           sku,
           price: params.price,
-          ...(params.weight !== undefined ? { weight: params.weight } : {}),
+          weight: params.weight,
           category: {
             connect: {
               id: category.id,

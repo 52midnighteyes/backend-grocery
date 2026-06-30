@@ -11,7 +11,7 @@ import type { TFindManyStoreStockOptions } from "./stock.models.js";
 export const findStoreStocks = async (
   where: ProductStockWhereInput,
   options: TFindManyStoreStockOptions = {},
-  db: TPrisma = prisma,
+  db: TPrisma = prisma
 ) => {
   return await db.productStock.findMany({
     where,
@@ -52,7 +52,7 @@ export const findStoreStocks = async (
 
 export const countStoreStocks = async (
   where: ProductStockWhereInput,
-  db: TPrisma = prisma,
+  db: TPrisma = prisma
 ) => {
   return await db.productStock.count({ where });
 };
@@ -60,7 +60,7 @@ export const countStoreStocks = async (
 export const findStoreStockByProductSlug = async (
   storeId: string,
   slug: string,
-  db: TPrisma = prisma,
+  db: TPrisma = prisma
 ) => {
   return await db.productStock.findFirst({
     where: {
@@ -70,7 +70,10 @@ export const findStoreStockByProductSlug = async (
         deletedAt: null,
       },
       product: {
-        slug,
+        slug: {
+          equals: slug,
+          mode: "insensitive",
+        },
         deletedAt: null,
       },
     },
@@ -113,7 +116,7 @@ export const findStoreStockByProductSlug = async (
 export const findStoreStockByProductId = async (
   storeId: string,
   productId: string,
-  db: TPrisma = prisma,
+  db: TPrisma = prisma
 ) => {
   return await db.productStock.findFirst({
     where: {
@@ -166,7 +169,7 @@ export const findStoreStockByProductId = async (
 export const upsertStoreStock = async (
   storeId: string,
   productId: string,
-  db: TPrisma = prisma,
+  db: TPrisma = prisma
 ) => {
   return await db.productStock.upsert({
     where: {
@@ -222,7 +225,7 @@ export const upsertStoreStock = async (
 export const updateStoreStockQuantity = async (
   stockId: string,
   stock: number,
-  db: TPrisma = prisma,
+  db: TPrisma = prisma
 ) => {
   return await db.productStock.update({
     where: {
@@ -269,7 +272,7 @@ export const updateStoreStockQuantity = async (
 
 export const createStockHistory = async (
   data: StockHistoryCreateInput,
-  db: TPrisma = prisma,
+  db: TPrisma = prisma
 ) => {
   return await db.stockHistory.create({
     data,
@@ -321,7 +324,7 @@ export const findStockHistories = async (
       | StockHistoryOrderByWithRelationInput
       | StockHistoryOrderByWithRelationInput[];
   } = {},
-  db: TPrisma = prisma,
+  db: TPrisma = prisma
 ) => {
   return await db.stockHistory.findMany({
     where,
@@ -369,7 +372,7 @@ export const findStockHistories = async (
 export const findStockHistoryById = async (
   storeId: string,
   historyId: string,
-  db: TPrisma = prisma,
+  db: TPrisma = prisma
 ) => {
   return await db.stockHistory.findFirst({
     where: {
@@ -412,7 +415,7 @@ export const findStockHistoryById = async (
 
 export const countStockHistories = async (
   where: StockHistoryWhereInput,
-  db: TPrisma = prisma,
+  db: TPrisma = prisma
 ) => {
   return await db.stockHistory.count({ where });
 };
@@ -424,7 +427,7 @@ export const getStockEndingSnapshot = async (
     productId?: string;
     categoryId?: string;
     q?: string;
-  } = {},
+  } = {}
 ) => {
   const storeFilter = filters.storeId ?? null;
   const productFilter = filters.productId ?? null;
