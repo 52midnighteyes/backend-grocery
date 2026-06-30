@@ -5,12 +5,12 @@ const emptyStringToUndefined = (value: unknown) =>
 
 const optionalNumberQuery = z.preprocess(
   emptyStringToUndefined,
-  z.coerce.number().int().positive().optional(),
+  z.coerce.number().int().positive().optional()
 );
 
 const optionalNonNegativeNumberQuery = z.preprocess(
   emptyStringToUndefined,
-  z.coerce.number().int().nonnegative().optional(),
+  z.coerce.number().int().nonnegative().optional()
 );
 
 const optionalBooleanQuery = z.preprocess((value) => {
@@ -23,12 +23,12 @@ const optionalBooleanQuery = z.preprocess((value) => {
 
 const optionalStringBody = z.preprocess(
   emptyStringToUndefined,
-  z.string().trim().optional(),
+  z.string().trim().optional()
 );
 
 const optionalNullableStringBody = z.preprocess(
   emptyStringToUndefined,
-  z.string().trim().nullable().optional(),
+  z.string().trim().nullable().optional()
 );
 
 const positionsBody = z.preprocess((value) => {
@@ -116,15 +116,15 @@ export const getAdminProductsQuerySchema = z
     size: z.preprocess(emptyStringToUndefined, z.string().trim().optional()),
     categoryName: z.preprocess(
       emptyStringToUndefined,
-      z.string().trim().optional(),
+      z.string().trim().optional()
     ),
     categoryId: z.preprocess(
       emptyStringToUndefined,
-      z.uuid({ error: "Category ID is invalid" }).optional(),
+      z.uuid({ error: "Category ID is invalid" }).optional()
     ),
     storeId: z.preprocess(
       emptyStringToUndefined,
-      z.uuid({ error: "Store ID is invalid" }).optional(),
+      z.uuid({ error: "Store ID is invalid" }).optional()
     ),
     minPrice: optionalNonNegativeNumberQuery,
     maxPrice: optionalNonNegativeNumberQuery,
@@ -156,7 +156,7 @@ export const getAdminProductsQuerySchema = z
     {
       message: "Minimum price cannot be greater than maximum price",
       path: ["minPrice"],
-    },
+    }
   )
   .refine(
     (data) =>
@@ -166,7 +166,7 @@ export const getAdminProductsQuerySchema = z
     {
       message: "Minimum stock cannot be greater than maximum stock",
       path: ["minStock"],
-    },
+    }
   )
   .transform((data) => ({
     ...data,
@@ -183,7 +183,7 @@ export const createProductBodySchema = z.object({
   price: z.coerce.number().int().positive("Price must be greater than 0"),
   weight: z.preprocess(
     emptyStringToUndefined,
-    z.coerce.number().int().positive("Weight must be greater than 0").optional(),
+    z.coerce.number().int().positive("Weight must be greater than 0")
   ),
   positions: positionsBody,
 });
@@ -203,7 +203,11 @@ export const updateProductBodySchema = z
       .optional(),
     weight: z.preprocess(
       emptyStringToUndefined,
-      z.coerce.number().int().positive("Weight must be greater than 0").optional(),
+      z.coerce
+        .number()
+        .int()
+        .positive("Weight must be greater than 0")
+        .optional()
     ),
   })
   .refine((data) => Object.keys(data).length > 0, {
@@ -216,7 +220,7 @@ export const updateProductImagePositionsBodySchema = z.object({
       z.object({
         id: z.uuid({ error: "Product image ID is invalid" }),
         position: z.coerce.number().int().positive(),
-      }),
+      })
     )
     .min(1, "At least one product image position is required")
     .max(5, "Product images cannot be more than 5"),

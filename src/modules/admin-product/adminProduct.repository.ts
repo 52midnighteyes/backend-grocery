@@ -38,7 +38,7 @@ const adminProductListInclude = {
 export const findAdminProducts = async (
   where: ProductWhereInput = { deletedAt: null },
   options: TFindManyAdminProductOptions = {},
-  db: TPrisma = prisma,
+  db: TPrisma = prisma
 ) => {
   return await db.product.findMany({
     where,
@@ -49,15 +49,12 @@ export const findAdminProducts = async (
 
 export const countAdminProducts = async (
   where: ProductWhereInput,
-  db: TPrisma = prisma,
+  db: TPrisma = prisma
 ) => {
   return await db.product.count({ where });
 };
 
-export const findProductByName = async (
-  name: string,
-  db: TPrisma = prisma,
-) => {
+export const findProductByName = async (name: string, db: TPrisma = prisma) => {
   return await db.product.findFirst({
     where: {
       name,
@@ -69,7 +66,7 @@ export const findProductByName = async (
 export const findProductByNameExceptId = async (
   name: string,
   id: string,
-  db: TPrisma = prisma,
+  db: TPrisma = prisma
 ) => {
   return await db.product.findFirst({
     where: {
@@ -82,10 +79,7 @@ export const findProductByNameExceptId = async (
   });
 };
 
-export const findProductBySku = async (
-  sku: string,
-  db: TPrisma = prisma,
-) => {
+export const findProductBySku = async (sku: string, db: TPrisma = prisma) => {
   return await db.product.findFirst({
     where: {
       sku,
@@ -97,7 +91,7 @@ export const findProductBySku = async (
 export const findProductBySkuExceptId = async (
   sku: string,
   id: string,
-  db: TPrisma = prisma,
+  db: TPrisma = prisma
 ) => {
   return await db.product.findFirst({
     where: {
@@ -110,10 +104,7 @@ export const findProductBySkuExceptId = async (
   });
 };
 
-export const findCategoryById = async (
-  id: string,
-  db: TPrisma = prisma,
-) => {
+export const findCategoryById = async (id: string, db: TPrisma = prisma) => {
   return await db.category.findFirst({
     where: {
       id,
@@ -124,7 +115,7 @@ export const findCategoryById = async (
 
 export const createProduct = async (
   data: ProductCreateInput,
-  db: TPrisma = prisma,
+  db: TPrisma = prisma
 ) => {
   return await db.product.create({
     data,
@@ -155,7 +146,7 @@ export const findActiveStoreIds = async (db: TPrisma = prisma) => {
 
 export const createProductStocks = async (
   data: ProductStockCreateManyInput[],
-  db: TPrisma = prisma,
+  db: TPrisma = prisma
 ) => {
   if (!data.length) return { count: 0 };
 
@@ -167,7 +158,7 @@ export const createProductStocks = async (
 export const updateProduct = async (
   id: string,
   data: ProductUpdateInput,
-  db: TPrisma = prisma,
+  db: TPrisma = prisma
 ) => {
   return await db.product.update({
     where: {
@@ -190,7 +181,7 @@ export const updateProduct = async (
 
 export const updateProductImagePosition = async (
   image: TProductImagePosition,
-  db: TPrisma = prisma,
+  db: TPrisma = prisma
 ) => {
   return await db.productImage.update({
     where: {
@@ -205,7 +196,7 @@ export const updateProductImagePosition = async (
 export const createProductImages = async (
   productId: string,
   images: Omit<ProductImageCreateManyInput, "productId">[],
-  db: TPrisma = prisma,
+  db: TPrisma = prisma
 ) => {
   if (!images.length) return { count: 0 };
 
@@ -220,7 +211,7 @@ export const createProductImages = async (
 export const softDeleteProductImagesByIds = async (
   productId: string,
   imageIds: string[],
-  db: TPrisma = prisma,
+  db: TPrisma = prisma
 ) => {
   if (!imageIds.length) return { count: 0 };
 
@@ -241,7 +232,7 @@ export const softDeleteProductImagesByIds = async (
 export const softDeleteProductImage = async (
   productId: string,
   imageId: string,
-  db: TPrisma = prisma,
+  db: TPrisma = prisma
 ) => {
   return await db.productImage.updateMany({
     where: {
@@ -257,7 +248,7 @@ export const softDeleteProductImage = async (
 
 const buildAdminProductWhere = (
   slug: string,
-  scope: TAdminProductScope = {},
+  scope: TAdminProductScope = {}
 ): ProductWhereInput => {
   return {
     slug,
@@ -281,7 +272,7 @@ const buildAdminProductWhere = (
 export const findAdminProductBySlug = async (
   slug: string,
   scope: TAdminProductScope = {},
-  db: TPrisma = prisma,
+  db: TPrisma = prisma
 ) => {
   return await db.product.findFirst({
     where: buildAdminProductWhere(slug, scope),
@@ -338,10 +329,7 @@ export const findAdminProductBySlug = async (
   });
 };
 
-export const softDeleteProduct = async (
-  id: string,
-  db: TPrisma = prisma,
-) => {
+export const softDeleteProduct = async (id: string, db: TPrisma = prisma) => {
   return await db.product.update({
     where: {
       id,
@@ -354,7 +342,7 @@ export const softDeleteProduct = async (
 
 export const softDeleteProductStocks = async (
   productId: string,
-  db: TPrisma = prisma,
+  db: TPrisma = prisma
 ) => {
   return await db.productStock.updateMany({
     where: {
@@ -369,7 +357,7 @@ export const softDeleteProductStocks = async (
 
 export const softDeleteProductImages = async (
   productId: string,
-  db: TPrisma = prisma,
+  db: TPrisma = prisma
 ) => {
   return await db.productImage.updateMany({
     where: {

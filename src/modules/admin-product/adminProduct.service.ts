@@ -118,7 +118,7 @@ export const createProductService = async (
           description: params.description,
           sku,
           price: params.price,
-          ...(params.weight !== undefined ? { weight: params.weight } : {}),
+          weight: params.weight,
           category: {
             connect: {
               id: category.id,
