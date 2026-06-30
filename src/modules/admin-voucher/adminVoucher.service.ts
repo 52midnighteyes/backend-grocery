@@ -39,7 +39,7 @@ const assertVoucherStoreExists = async (storeId: string | null) => {
 
 export const getVouchersService = async (
   params: TGetVouchersQuery,
-  requesterId: string,
+  requesterId: string
 ) => {
   const requester = await getAdminRequester(requesterId);
   const scopedStoreId =
@@ -78,7 +78,7 @@ export const getVoucherService = async (id: string, requesterId: string) => {
 
 export const createVoucherService = async (
   params: TCreateVoucherBody,
-  requesterId: string,
+  requesterId: string
 ) => {
   const requester = await getAdminRequester(requesterId);
   const code = normalizeVoucherCode(params.code);
@@ -88,7 +88,8 @@ export const createVoucherService = async (
   await assertVoucherStoreExists(storeId);
 
   const existingVoucher = await findVoucherByCode(code);
-  if (existingVoucher) throw new AppError(400, "Voucher code is already in use");
+  if (existingVoucher)
+    throw new AppError(400, "Voucher code is already in use");
 
   const data: VoucherCreateInput = {
     name: params.name,
@@ -116,7 +117,7 @@ export const createVoucherService = async (
 export const updateVoucherService = async (
   id: string,
   params: TUpdateVoucherBody,
-  requesterId: string,
+  requesterId: string
 ) => {
   const requester = await getAdminRequester(requesterId);
   const voucher = await findVoucherById(id);
@@ -128,14 +129,14 @@ export const updateVoucherService = async (
     requester.role.name === "storeAdmin"
       ? voucher.storeId
       : params.storeId === undefined
-        ? voucher.storeId
-        : params.storeId;
+      ? voucher.storeId
+      : params.storeId;
   const nextDiscountType = params.discountType ?? voucher.discountType;
   const nextValue = params.value ?? voucher.value;
   const nextStartDate = params.startDate ?? voucher.startDate;
   const nextEndDate = params.endDate ?? voucher.endDate;
 
-  if (nextStartDate > nextEndDate) {
+  if (nextStartDate > nextEndDate!) {
     throw new AppError(400, "Start date cannot be after end date");
   }
 
