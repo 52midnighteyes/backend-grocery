@@ -9,8 +9,50 @@ import { prisma } from "../../libs/prisma/prisma.lib.js";
 import { TPrisma } from "../../libs/prisma/prisma.types.js";
 import type {
   TAdminProductScope,
+  TFindManyAdminProductOptions,
   TProductImagePosition,
 } from "./adminProduct.models.js";
+
+const adminProductListInclude = {
+  category: {
+    select: {
+      id: true,
+      name: true,
+    },
+  },
+  images: {
+    where: {
+      deletedAt: null,
+    },
+    select: {
+      id: true,
+      image: true,
+      position: true,
+    },
+    orderBy: {
+      position: "asc" as const,
+    },
+  },
+};
+
+export const findAdminProducts = async (
+  where: ProductWhereInput = { deletedAt: null },
+  options: TFindManyAdminProductOptions = {},
+  db: TPrisma = prisma,
+) => {
+  return await db.product.findMany({
+    where,
+    include: adminProductListInclude,
+    ...options,
+  });
+};
+
+export const countAdminProducts = async (
+  where: ProductWhereInput,
+  db: TPrisma = prisma,
+) => {
+  return await db.product.count({ where });
+};
 
 export const findProductByName = async (
   name: string,

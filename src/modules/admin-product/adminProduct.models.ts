@@ -1,3 +1,5 @@
+import type { ProductFindManyArgs } from "../../../generated/prisma/models.js";
+
 export type TUploadedProductImage = {
   image: string;
   publicId: string;
@@ -18,3 +20,8 @@ export type TAdminProductScope = {
 export type TProductGalleryImage = {
   id: string;
 };
+
+export type TFindManyAdminProductOptions = Pick<
+  ProductFindManyArgs,
+  "orderBy" | "skip" | "take"
+>;

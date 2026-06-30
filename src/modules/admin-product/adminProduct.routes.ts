@@ -15,12 +15,10 @@ import {
 } from "./adminProduct.controller.js";
 import {
   createProductBodySchema,
-  getProductsQuerySchema,
+  getAdminProductsQuerySchema,
   productSlugParamSchema,
   updateProductBodySchema,
   updateProductImagePositionsBodySchema,
-} from "../product/product.schemas.js";
-import {
   patchProductImagesBodySchema,
   productImageParamSchema,
 } from "./adminProduct.schemas.js";
@@ -40,7 +38,7 @@ adminProductRoutes.post(
 adminProductRoutes.get(
   "/",
   permissionGuard("product:read"),
-  validateSchema(getProductsQuerySchema, "query"),
+  validateSchema(getAdminProductsQuerySchema, "query"),
   getAdminProductsController,
 );
 
