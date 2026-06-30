@@ -399,7 +399,7 @@ model Discount {
 model Voucher {
   id                 String              @id @default(uuid())
   name               String
-  code               String              @unique
+  code               String?              @unique
   quantity           Int
   storeId            String?             @map("store_id")
   minimumTransaction Int?                @map("minimum_transaction")
