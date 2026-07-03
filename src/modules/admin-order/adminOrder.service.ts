@@ -9,6 +9,12 @@ import {
   findStoreStockByProductId,
   updateStoreStockQuantity,
 } from "../stock/stock.repository.js";
+import {
+  sendPaymentConfirmedEmail,
+  sendPaymentRejectedEmail,
+  sendOrderShippedEmail,
+  sendOrderAdminCancelledEmail,
+} from "../order/order.mailer.js";
 
 export const getAdminOrderService = async (
   requesterId: string,
@@ -52,7 +58,7 @@ export const confirmPaymentService = async (
 ) => {
   const scope = await getAdminOrderScope(requesterId);
 
-  return prisma.$transaction(async (tx) => {
+  const order = await prisma.$transaction(async (tx) => {
     const order = await findAdminTransactionById(orderId, tx);
 
     if (!order) throw new AppError(404, "Order not found");
@@ -67,7 +73,23 @@ export const confirmPaymentService = async (
 
     const nextStatus = action === "approve" ? "process" : "waitingPayment";
     await updateTransactionStatus(orderId, nextStatus, tx);
+
+    return order;
   });
+
+  if (action === "approve") {
+    sendPaymentConfirmedEmail({
+      email: order.customer.email,
+      name: order.customer.name,
+      orderId: order.id,
+    }).catch(console.error);
+  } else {
+    sendPaymentRejectedEmail({
+      email: order.customer.email,
+      name: order.customer.name,
+      orderId: order.id,
+    }).catch(console.error);
+  }
 };
 
 export const shipOrderService = async (
@@ -76,7 +98,7 @@ export const shipOrderService = async (
 ) => {
   const scope = await getAdminOrderScope(requesterId);
 
-  return prisma.$transaction(async (tx) => {
+  const order = await prisma.$transaction(async (tx) => {
     const order = await findAdminTransactionById(orderId, tx);
 
     if (!order) throw new AppError(404, "Order not found");
@@ -90,7 +112,16 @@ export const shipOrderService = async (
     }
 
     await updateTransactionStatus(orderId, "onDelivery", tx);
+
+    return order;
   });
+
+  sendOrderShippedEmail({
+    email: order.customer.email,
+    name: order.customer.name,
+    orderId: order.id,
+    shippingVendor: order.shipping_vendor,
+  }).catch(console.error);
 };
 
 // Admin dapat membatalkan pesanan sampai sebelum status onDelivery.
@@ -101,7 +132,7 @@ export const cancelOrderByAdminService = async (
 ) => {
   const scope = await getAdminOrderScope(requesterId);
 
-  return prisma.$transaction(async (tx) => {
+  const order = await prisma.$transaction(async (tx) => {
     const order = await findAdminTransactionById(orderId, tx);
 
     if (!order) throw new AppError(404, "Order not found");
@@ -145,5 +176,13 @@ export const cancelOrderByAdminService = async (
         tx,
       );
     }
+
+    return order;
   });
+
+  sendOrderAdminCancelledEmail({
+    email: order.customer.email,
+    name: order.customer.name,
+    orderId: order.id,
+  }).catch(console.error);
 };

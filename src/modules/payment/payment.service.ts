@@ -8,6 +8,11 @@ import {
   updateMidtransStatus,
   findTransactionByOrderId,
 } from "./payment.repository.js";
+import { findUserById } from "../user/user.repository.js";
+import {
+  sendPaymentConfirmedEmail,
+  sendOrderMidtransCancelledEmail,
+} from "../order/order.mailer.js";
 
 // --------------------------------------------------------
 // MANUAL TRANSFER
@@ -116,7 +121,8 @@ export const handleMidtransWebhookService = async (
 
   // Mapping status Midtrans ke status transaksi kita
   // Referensi: https://docs.midtrans.com/docs/status-cycle
-  let newStatus = order.transactionStatus as string;
+  const previousStatus = order.transactionStatus as string;
+  let newStatus = previousStatus;
   let paidAt: Date | null = null;
 
   if (transaction_status === "capture") {
@@ -138,4 +144,25 @@ export const handleMidtransWebhookService = async (
   }
 
   await updateMidtransStatus(order_id, transaction_status, newStatus, paidAt);
+
+  // Kirim email hanya jika status benar-benar berubah ke process atau cancel
+  // supaya tidak ada duplikasi email kalau Midtrans retry webhook
+  if (newStatus !== previousStatus && (newStatus === "process" || newStatus === "cancel")) {
+    findUserById(order.customerId).then((user) => {
+      if (!user) return;
+      if (newStatus === "process") {
+        sendPaymentConfirmedEmail({
+          email: user.email,
+          name: user.name,
+          orderId: order.id,
+        }).catch(console.error);
+      } else {
+        sendOrderMidtransCancelledEmail({
+          email: user.email,
+          name: user.name,
+          orderId: order.id,
+        }).catch(console.error);
+      }
+    }).catch(console.error);
+  }
 };

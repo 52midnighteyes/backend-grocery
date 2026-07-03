@@ -7,18 +7,6 @@ import { prisma } from "../../libs/prisma/prisma.lib.js";
 import type { TPrisma } from "../../libs/prisma/prisma.types.js";
 import type { TCreateOrderPayload, TGetOrdersQueryType } from "./order.types.js";
 
-export const findUserVoucherByUserAndVoucher = (userId: string, voucherId: string, db: TPrisma = prisma) =>
-  db.userVoucher.findUnique({ where: { userId_voucherId: { userId, voucherId } } });
-
-export const markUserVoucherAsUsed = (userId: string, voucherId: string, db: TPrisma = prisma) =>
-  db.userVoucher.update({
-    where: { userId_voucherId: { userId, voucherId } },
-    data: { isUsed: true, usedAt: new Date() },
-  });
-
-export const voucherHasAnyOwner = async (voucherId: string, db: TPrisma = prisma) =>
-  (await db.userVoucher.count({ where: { voucherId } })) > 0;
-
 export const findAddressById = async (
   addressId: string,
   userId: string,
@@ -118,10 +106,11 @@ export const findVoucherByIdAndType = async (
       voucherType,
       deletedAt: null,
       startDate: { lte: new Date() },
+      endDate: { gte: new Date() },
       quantity: { gt: 0 },
-      AND: [
-        { OR: [{ storeId: null }, { storeId }] },
-        { OR: [{ endDate: null }, { endDate: { gte: new Date() } }] },
+      OR: [
+        { storeId: null },
+        { storeId },
       ],
     },
   });
@@ -413,6 +402,9 @@ export const findExpiredOrders = async (db: TPrisma = prisma) => {
     include: {
       items: {
         where: { deletedAt: null },
+      },
+      customer: {
+        select: { name: true, email: true },
       },
     },
   });
