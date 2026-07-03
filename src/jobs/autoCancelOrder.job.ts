@@ -6,6 +6,7 @@ import {
   incrementProductStock,
   createStockHistory,
 } from "../modules/order/order.repository.js";
+import { sendOrderAutoCancelledEmail } from "../modules/order/order.mailer.js";
 
 // Cron job auto cancel order yang sudah melewati batas waktu pembayaran (1 jam).
 // Dijalan setiap menit untuk memastikan tidak ada order expired yang terlambat dicancel.
@@ -41,6 +42,12 @@ export const startAutoCancelOrderJob = () => {
             );
           }
         });
+
+        sendOrderAutoCancelledEmail({
+          email: order.customer.email,
+          name: order.customer.name,
+          orderId: order.id,
+        }).catch(console.error);
 
         console.log(`[AutoCancel] Order ${order.id} cancelled successfully`);
       }
