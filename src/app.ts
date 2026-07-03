@@ -72,6 +72,12 @@ app.use("/", (req: Request, _res: Response, next: NextFunction) => {
   next();
 });
 
+app.use((_req, res, next) => {
+  res.setHeader("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
+  next();
+});
+
+
 //routes
 app.get("/", (_req: Request, res: Response) => {
   res.send(`Auth boilerplate is running on port: ${PORT}`);
