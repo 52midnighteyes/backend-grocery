@@ -143,6 +143,7 @@ export const createTransaction = async (
     data: {
       customerId: payload.customerId,
       storeId: payload.storeId,
+      addressId: payload.addressId,
       deliveryFee: payload.deliveryFee,
       shipping_vendor: payload.shippingVendor,
       totalPrice: payload.totalPrice,
