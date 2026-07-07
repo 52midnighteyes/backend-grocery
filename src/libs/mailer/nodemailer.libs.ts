@@ -1,5 +1,9 @@
 import nodemailer from "nodemailer";
-import { NODEMAILER_PASS, NODEMAILER_USER } from "../../config/config.js";
+import {
+  NODEMAILER_HOST,
+  NODEMAILER_PASS,
+  NODEMAILER_USER,
+} from "../../config/config.js";
 
 type TEmailCategory =
   | "EMAIL_VERIFICATION"
@@ -9,7 +13,7 @@ type TEmailCategory =
   | "ADMIN_NOTIFICATION";
 
 const transporter = nodemailer.createTransport({
-  host: "live.smtp.mailtrap.io",
+  host: NODEMAILER_HOST,
   port: 587,
   auth: {
     user: NODEMAILER_USER,
