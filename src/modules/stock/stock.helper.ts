@@ -109,6 +109,47 @@ export const buildStoreStockWhere = (
   return where;
 };
 
+const appendStoreStockWhereCondition = (
+  where: ProductStockWhereInput,
+  condition: ProductStockWhereInput,
+): ProductStockWhereInput => {
+  const existingAnd = where.AND;
+  const andConditions = Array.isArray(existingAnd)
+    ? existingAnd
+    : existingAnd
+      ? [existingAnd]
+      : [];
+
+  return {
+    ...where,
+    AND: [...andConditions, condition],
+  };
+};
+
+export const buildAvailableStoreStockWhere = (
+  storeId: string,
+  query: TGetStoreStocksQuery,
+) =>
+  appendStoreStockWhereCondition(
+    buildStoreStockWhere(storeId, {
+      ...query,
+      inStock: undefined,
+    }),
+    { stock: { gt: 0 } },
+  );
+
+export const buildUnavailableStoreStockWhere = (
+  storeId: string,
+  query: TGetStoreStocksQuery,
+) =>
+  appendStoreStockWhereCondition(
+    buildStoreStockWhere(storeId, {
+      ...query,
+      inStock: undefined,
+    }),
+    { stock: { lte: 0 } },
+  );
+
 export const buildStoreStockOrderBy = (
   query: TGetStoreStocksQuery,
 ): ProductStockOrderByWithRelationInput => {
