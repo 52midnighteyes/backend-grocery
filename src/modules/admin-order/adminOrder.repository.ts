@@ -64,24 +64,24 @@ export const findAdminTransactionById = async (
     transactionId: string,
     db: TPrisma = prisma,
 ) => {
-    return db.transaction.findFirst({
+    const transaction = await db.transaction.findFirst({
         where: { id: transactionId, deletedAt: null },
         include: {
             items: {
-                where: { deletedAt: null },
-                include: {
-                    product: {
+                        where: { deletedAt: null },
                         include: {
-                            images: {
-                                where: { deletedAt: null },
-                                orderBy: { position: "asc" },
-                                take: 1,
+                            product: {
+                                include: {
+                                    images: {
+                                        where: { deletedAt: null },
+                                        orderBy: { position: "asc" },
+                                        take: 1,
+                                    },
+                                },
                             },
+                            discount: true,
                         },
                     },
-                    discount: true,
-                },
-            },
             store: true,
             customer: {
                 select: { id: true, name: true, email: true },
@@ -90,4 +90,12 @@ export const findAdminTransactionById = async (
             deliveryVoucher: true,
         },
     });
+
+    if (!transaction || !transaction.addressId) return transaction;
+
+    const address = await db.address.findFirst({
+        where: { id: transaction.addressId, deletedAt: null },
+    });
+
+    return { ...transaction, address };
 };
