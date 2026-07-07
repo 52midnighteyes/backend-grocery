@@ -16,7 +16,6 @@ export const CLOUDINARY_API_SECRET = getRequiredEnv("CLOUDINARY_API_SECRET");
 export const VERIFY_TOKEN_SECRET = getRequiredEnv("VERIFY_TOKEN_SECRET");
 export const RESET_TOKEN_SECRET = getRequiredEnv("RESET_TOKEN_SECRET");
 export const PEPPER = getRequiredEnv("PEPPER");
-export const MAILTRAP_TOKEN = getRequiredEnv("MAILTRAP_TOKEN");
 export const GOOGLE_CLIENT_ID = getRequiredEnv("GOOGLE_CLIENT_ID");
 export const ADMIN_ACCESS_TOKEN_SECRET = getRequiredEnv(
   "ADMIN_ACCESS_TOKEN_SECRET"
@@ -29,4 +28,5 @@ export const STORE_MAX_RADIUS_KM = getNumberEnv("STORE_MAX_RADIUS_KM", 50);
 export const RAJAONGKIR_API_KEY = getRequiredEnv("RAJAONGKIR_API_KEY");
 export const MIDTRANS_SERVER_KEY = getRequiredEnv("MIDTRANS_SERVER_KEY");
 export const MIDTRANS_CLIENT_KEY = getRequiredEnv("MIDTRANS_CLIENT_KEY");
-export const MIDTRANS_IS_PRODUCTION = process.env.MIDTRANS_IS_PRODUCTION || "false";
+export const MIDTRANS_IS_PRODUCTION =
+  process.env.MIDTRANS_IS_PRODUCTION || "false";
