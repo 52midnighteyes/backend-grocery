@@ -1,10 +1,15 @@
 import nodemailer from "nodemailer";
-import { NODEMAILER_USER, NODEMAILER_PASS } from "../../config/config.js";
+import { NODEMAILER_PASS, NODEMAILER_USER } from "../../config/config.js";
 
-type TEmailCategory = "EMAIL_VERIFICATION" | "INVOICE" | "TEST_MAILTRAP" | "ORDER_NOTIFICATION";
+type TEmailCategory =
+  | "EMAIL_VERIFICATION"
+  | "INVOICE"
+  | "TEST_MAILTRAP"
+  | "ORDER_NOTIFICATION"
+  | "ADMIN_NOTIFICATION";
 
 const transporter = nodemailer.createTransport({
-  host: "sandbox.smtp.mailtrap.io",
+  host: "live.smtp.mailtrap.io",
   port: 587,
   auth: {
     user: NODEMAILER_USER,
