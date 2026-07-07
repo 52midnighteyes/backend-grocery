@@ -143,6 +143,7 @@ export const createTransaction = async (
     data: {
       customerId: payload.customerId,
       storeId: payload.storeId,
+      addressId: payload.addressId,
       deliveryFee: payload.deliveryFee,
       shipping_vendor: payload.shippingVendor,
       totalPrice: payload.totalPrice,
@@ -334,7 +335,8 @@ export const findTransactionsByCustomer = async (
   query: TGetOrdersQueryType,
   db: TPrisma = prisma,
 ) => {
-  const { page, limit, status, startDate, endDate } = query;
+  const { page, limit, status, startDate, endDate, search } = query;
+
   const skip = (page - 1) * limit;
 
   const where: Record<string, unknown> = {
@@ -343,6 +345,7 @@ export const findTransactionsByCustomer = async (
   };
 
   if (status) where.transactionStatus = status;
+  if (search) where.id  = { contains: search, mode: "insensitive"};
   if (startDate || endDate) {
     where.createdAt = {
       ...(startDate ? { gte: new Date(startDate) } : {}),

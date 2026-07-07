@@ -3,10 +3,9 @@ import { prisma } from "../libs/prisma/prisma.lib.js";
 import {
   findExpiredOrders,
   updateTransactionStatus,
-  incrementProductStock,
-  createStockHistory,
 } from "../modules/order/order.repository.js";
 import { sendOrderAutoCancelledEmail } from "../modules/order/order.mailer.js";
+import { createStockHistory, findStoreStockByProductId, updateStoreStockQuantity } from "../modules/stock/stock.repository.js";
 
 // Cron job auto cancel order yang sudah melewati batas waktu pembayaran (1 jam).
 // Dijalan setiap menit untuk memastikan tidak ada order expired yang terlambat dicancel.
@@ -28,15 +27,24 @@ export const startAutoCancelOrderJob = () => {
             // untuk item ini saat order dibuat, jadi tidak perlu di-restore.
             if (item.requiresFulfillment) continue;
 
-            await incrementProductStock(item.productId, order.storeId, item.quantity, tx);
+            const stock = await findStoreStockByProductId(order.storeId, item.productId, tx);
+            if (!stock) continue;
+
+            const stockBefore = stock.stock;
+            const stockAfter = stockBefore + item.quantity;
+
+            await updateStoreStockQuantity(stock.id, stockAfter, tx);  
             await createStockHistory(
               {
                 name: `Auto Cancelled - ${item.name}`,
-                productId: item.productId,
-                storeId: order.storeId,
-                type: "returnIn",
-                transactionId: order.id,
                 quantity: item.quantity,
+                stockBefore,
+                stockAfter,
+                product: { connect: { id: item.productId } },
+                store: { connect: { id: order.storeId } },
+                transaction: { connect: { id: order.id } },
+                type: "returnIn",
+                notes: "Order auto-cancelled due to payment timeout",
               },
               tx,
             );
