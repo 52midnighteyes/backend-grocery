@@ -71,7 +71,7 @@ export const searchRajaOngkirDestination = async (
   const url = `${RAJAONGKIR_BASE_URL}/destination/domestic-destination?search=${encodeURIComponent(term)}&limit=5&offset=0`;
   const res = await fetch(url, { headers: { key: RAJAONGKIR_API_KEY } });
 
-  if (res.status === 404) return null;      
+  if (res.status === 404) return null;
   if (!res.ok) throw new AppError(502, "Shipping service is unavailable");
 
   const body = (await res.json()) as {
@@ -156,7 +156,7 @@ export const getShippingCostService = async (userId: string, addressId: string) 
   const costs = await calculateRajaOngkirCost(origin.id, destination.id, weight);
 
   return {
-    origin: { id: origin.id, label: origin.label, store: nearest.name },
+    origin: { id: origin.id, label: origin.label, store: nearest.name, storeId: nearest.id },
     destination: { id: destination.id, label: destination.label },
     costs,
   };

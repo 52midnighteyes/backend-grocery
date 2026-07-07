@@ -111,6 +111,25 @@ export const shipOrderService = async (
       throw new AppError(400, "Order must be in 'process' status to be shipped");
     }
 
+    // Pastikan semua item yang butuh fulfillment sudah ada transfer yang diterima.
+    // Tanpa ini, admin bisa ship walaupun stok belum beneran ada di toko.
+    const fulfillmentItems = order.items.filter((item) => item.requiresFulfillment);
+    for (const item of fulfillmentItems) {
+      const receivedTransfer = await tx.stockTransferRequest.findFirst({
+        where: {
+          productId: item.productId,
+          toStoreId: order.storeId,
+          status: "received",
+        },
+      });
+      if (!receivedTransfer) {
+        throw new AppError(
+          400,
+          `Item "${item.name}" requires stock fulfillment before shipping`,
+        );
+      }
+    }
+
     await updateTransactionStatus(orderId, "onDelivery", tx);
 
     return order;
