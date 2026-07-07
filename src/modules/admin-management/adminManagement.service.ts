@@ -19,6 +19,10 @@ import {
   buildAdminAccountWhere,
   sanitizeAdminAccount,
 } from "./adminManagement.helper.js";
+import {
+  sendAdminAccountCreatedEmail,
+  sendAdminAccountUpdatedEmail,
+} from "./adminManagement.mailer.js";
 import type {
   TCreateAdminAccountBody,
   TGetAdminAccountsQuery,
@@ -26,7 +30,7 @@ import type {
 } from "./adminManagement.schemas.js";
 
 export const createAdminAccountService = async (
-  params: TCreateAdminAccountBody,
+  params: TCreateAdminAccountBody
 ) => {
   const existingUser = await findUserByEmail(params.email);
   if (existingUser) throw new AppError(400, "Email is already in use");
@@ -65,12 +69,19 @@ export const createAdminAccountService = async (
       : {}),
   });
 
+  sendAdminAccountCreatedEmail({
+    email: params.email,
+    name: params.name,
+    password: params.password,
+    storeName: store?.name ?? "Not assigned to a store",
+  }).catch(console.error);
+
   return sanitizeAdminAccount(adminAccount);
 };
 
 export const getAdminAccountsService = async (
   params: TGetAdminAccountsQuery,
-  requesterId: string,
+  requesterId: string
 ) => {
   const page = params.page;
   const limit = params.limit;
@@ -98,7 +109,7 @@ export const getAdminAccountsService = async (
 
   return {
     data: adminAccounts.map((adminAccount) =>
-      sanitizeAdminAccount(adminAccount),
+      sanitizeAdminAccount(adminAccount)
     ),
     meta: buildPaginationMeta(page, limit, total),
   };
@@ -106,7 +117,7 @@ export const getAdminAccountsService = async (
 
 export const getAdminAccountService = async (
   id: string,
-  requesterId: string,
+  requesterId: string
 ) => {
   const adminAccount = await findAdminAccountById(id);
   if (!adminAccount) throw new AppError(404, "Admin account was not found");
@@ -125,7 +136,7 @@ export const getAdminAccountService = async (
 
 export const updateAdminAccountService = async (
   id: string,
-  params: TUpdateAdminAccountBody,
+  params: TUpdateAdminAccountBody
 ) => {
   const adminAccount = await findAdminAccountById(id);
   if (!adminAccount) throw new AppError(404, "Admin account was not found");
@@ -159,10 +170,19 @@ export const updateAdminAccountService = async (
       ...params,
       storeId: nextRoleName === "superAdmin" ? null : params.storeId,
     },
-    hashedPassword,
+    hashedPassword
   );
 
   const updatedAdminAccount = await updateAdminAccount(id, data);
+
+  sendAdminAccountUpdatedEmail({
+    email: updatedAdminAccount.email,
+    name: updatedAdminAccount.name,
+    password: params.password,
+    roleName: updatedAdminAccount.role.name,
+    storeName: updatedAdminAccount.store?.name ?? "Not assigned to a store",
+  }).catch(console.error);
+
   return sanitizeAdminAccount(updatedAdminAccount);
 };
 
