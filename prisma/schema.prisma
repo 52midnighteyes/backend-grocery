@@ -430,6 +430,7 @@ model Transaction {
   id                   String            @id @default(uuid())
   customerId           String            @map("customer_id")
   adminId              String?           @map("admin_id")
+  addressId            String?           @map("address_id")
   storeId              String            @map("store_id")
   deliveryFee          Int               @map("delivery_fee")
   shipping_vendor      String
