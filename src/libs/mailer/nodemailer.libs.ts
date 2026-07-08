@@ -12,14 +12,27 @@ type TEmailCategory =
   | "ORDER_NOTIFICATION"
   | "ADMIN_NOTIFICATION";
 
-const transporter = nodemailer.createTransport({
-  host: NODEMAILER_HOST,
-  port: 587,
-  auth: {
-    user: NODEMAILER_USER,
-    pass: NODEMAILER_PASS,
-  },
-});
+const mailHost = NODEMAILER_HOST?.toLowerCase();
+
+export const transporter = nodemailer.createTransport(
+  mailHost === "gmail"
+    ? {
+        service: "gmail",
+        auth: {
+          user: NODEMAILER_USER,
+          pass: NODEMAILER_PASS,
+        },
+      }
+    : {
+        host: NODEMAILER_HOST,
+        port: 587,
+        secure: false,
+        auth: {
+          user: NODEMAILER_USER,
+          pass: NODEMAILER_PASS,
+        },
+      }
+);
 
 const sender = {
   address: "grocergo@alwistudio.com",
