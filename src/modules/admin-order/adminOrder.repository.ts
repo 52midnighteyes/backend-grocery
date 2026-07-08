@@ -8,11 +8,9 @@ export const findAdminTransactions = async (
     scope: TAdminOrderScope,
     db: TPrisma = prisma,
 ) => {
-    const { page, limit, storeId, status, startDate, endDate, search } = query;
+    const { page, limit, storeId, status, startDate, endDate, search, sortBy, sortOrder } = query;
     const skip = (page - 1) * limit;
 
-    // storeAdmin hanya bisa lihat toko miliknya sendiri.
-    // superAdmin bisa filter by storeId dari query, atau lihat semua jika tidak ada filter.
     const effectiveStoreId = scope.storeId ?? storeId;
 
     const where: Record<string, unknown> = { deletedAt: null };
@@ -23,7 +21,7 @@ export const findAdminTransactions = async (
     if (startDate || endDate) {
         where.createdAt = {
             ...(startDate ? { gte: new Date(startDate) } : {}),
-            ...(endDate ? { lte : new Date(endDate) } : {}),
+            ...(endDate ? { lte: new Date(endDate) } : {}),
         };
     }
 
@@ -32,7 +30,7 @@ export const findAdminTransactions = async (
             where,
             skip,
             take: limit,
-            orderBy: { createdAt: "desc" },
+            orderBy: { [sortBy]: sortOrder },
             include: {
                 items: {
                     where: { deletedAt: null },
