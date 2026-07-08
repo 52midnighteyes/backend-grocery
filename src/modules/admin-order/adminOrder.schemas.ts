@@ -1,6 +1,6 @@
 import * as z from "zod";
 
-export  const adminGetOrdersQuerySchema = z.object({
+export const adminGetOrdersQuerySchema = z.object({
     page: z
         .string()
         .optional()
@@ -16,6 +16,8 @@ export  const adminGetOrdersQuerySchema = z.object({
     startDate: z.string().optional(),
     endDate: z.string().optional(),
     search: z.string().optional(),
+    sortBy: z.enum(["createdAt", "totalPrice"]).optional().default("createdAt"),
+    sortOrder: z.enum(["asc", "desc"]).optional().default("desc"),
 });
 
 export const adminOrderParamsSchema = z.object({

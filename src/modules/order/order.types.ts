@@ -44,4 +44,6 @@ export type TGetOrdersQueryType = {
   startDate?: string;
   endDate?: string;
   search?: string;
+  sortBy: "createdAt";
+  sortOrder: "asc" | "desc";
 };

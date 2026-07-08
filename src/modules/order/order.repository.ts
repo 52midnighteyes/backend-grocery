@@ -32,8 +32,6 @@ export const findProductById = async (
   });
 };
 
-// findNearestStore tidak terima TransactionClient karena pakai $queryRaw
-// yang hanya ada di PrismaClient. Dipanggil di service sebelum transaction dimulai.
 export const findNearestStore = async (latitude: string, longitude: string) => {
   const stores = await prisma.$queryRaw<
     { id: string; name: string; distance: number }[]
@@ -91,9 +89,6 @@ export const sumProductStockAcrossStores = async (
   return aggregate._sum.stock ?? 0;
 };
 
-// storeId dipakai untuk validasi store-scope:
-// voucher global (storeId null) bisa dipakai di mana saja,
-// voucher store-scope hanya bisa dipakai di toko yang bersangkutan.
 export const findVoucherByIdAndType = async (
   voucherId: string,
   voucherType: "transaction" | "delivery",
@@ -136,7 +131,6 @@ export const createTransaction = async (
   payload: TCreateOrderPayload,
   db: TPrisma = prisma,
 ) => {
-  // Set paymentExpiredAt 1 jam dari sekarang sesuai spec
   const paymentExpiredAt = new Date(Date.now() + 60 * 60 * 1000);
 
   return db.transaction.create({
@@ -335,7 +329,7 @@ export const findTransactionsByCustomer = async (
   query: TGetOrdersQueryType,
   db: TPrisma = prisma,
 ) => {
-  const { page, limit, status, startDate, endDate, search } = query;
+  const { page, limit, status, startDate, endDate, search, sortBy, sortOrder } = query;
 
   const skip = (page - 1) * limit;
 
@@ -345,7 +339,7 @@ export const findTransactionsByCustomer = async (
   };
 
   if (status) where.transactionStatus = status;
-  if (search) where.id  = { contains: search, mode: "insensitive"};
+  if (search) where.id = { contains: search, mode: "insensitive" };
   if (startDate || endDate) {
     where.createdAt = {
       ...(startDate ? { gte: new Date(startDate) } : {}),
@@ -358,7 +352,7 @@ export const findTransactionsByCustomer = async (
       where,
       skip,
       take: limit,
-      orderBy: { createdAt: "desc" },
+      orderBy: { [sortBy]: sortOrder },
       include: {
         items: {
           where: { deletedAt: null },
@@ -394,7 +388,6 @@ export const updateTransactionStatus = async (
   });
 };
 
-// Dipakai oleh cron job auto cancel
 export const findExpiredOrders = async (db: TPrisma = prisma) => {
   return db.transaction.findMany({
     where: {

@@ -40,13 +40,14 @@ export const getOrdersQuerySchema = z.object({
   startDate: z.string().optional(),
   endDate: z.string().optional(),
   search: z.string().optional(),
+  sortBy: z.enum(["createdAt"]).optional().default("createdAt"),
+  sortOrder: z.enum(["asc", "desc"]).optional().default("desc"),
 });
 
 export const orderParamsSchema = z.object({
   orderId: z.string().uuid("Order ID is not valid"),
 });
 
-// Status yang boleh diubah oleh user (bukan admin)
 export const updateOrderStatusSchema = z.object({
   status: z.enum(["cancel", "confirmed"], {
     error: "Status must be either 'cancel' or 'confirmed'",
