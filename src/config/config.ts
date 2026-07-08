@@ -31,3 +31,4 @@ export const MIDTRANS_CLIENT_KEY = getRequiredEnv("MIDTRANS_CLIENT_KEY");
 export const MIDTRANS_IS_PRODUCTION =
   process.env.MIDTRANS_IS_PRODUCTION || "false";
 export const NODEMAILER_HOST = getRequiredEnv("NODEMAILER_HOST");
+export const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
