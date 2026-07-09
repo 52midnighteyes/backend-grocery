@@ -4,12 +4,8 @@ import type { TSalesReportQuery } from "./adminSalesReport.schemas.js";
 
 export type TSalesReportGranularity = TSalesReportQuery["granularity"];
 
-export const SALES_REPORT_TRANSACTION_STATUSES = [
-  TransactionStatus.paid,
-  TransactionStatus.process,
-  TransactionStatus.onDelivery,
-  TransactionStatus.confirmed,
-] as const satisfies readonly TTransactionStatus[];
+export const SALES_REPORT_TRANSACTION_STATUS =
+  TransactionStatus.confirmed satisfies TTransactionStatus;
 
 export type TSalesReportDateRange = {
   startDate: Date;
@@ -29,6 +25,8 @@ export type TSalesTrendRow = {
   transactionVoucherDiscount: bigint | number | null;
   deliveryRevenue: bigint | number | null;
   totalRevenue: bigint | number | null;
+  totalDiscountAmount: bigint | number | null;
+  totalPromotionUsed: bigint | number | null;
 };
 
 export type TCategoryTrendRow = {
