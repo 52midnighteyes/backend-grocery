@@ -439,6 +439,70 @@ export const getTransactionReportRows = async (
   `;
 };
 
+export const getTransactionReportExportRows = async (
+  startDate: Date,
+  endDate: Date,
+  storeId?: string,
+  status?: string,
+  q?: string,
+) => {
+  const storeFilter = storeId ?? null;
+  const statusFilter = status ?? null;
+  const search = q ? `%${q}%` : null;
+
+  return await prisma.$queryRaw<TTransactionReportRow[]>`
+    WITH item_sales AS (
+      SELECT
+        ti.transaction_id,
+        COALESCE(SUM(ti.quantity), 0)::bigint AS "totalItemsSold",
+        COALESCE(SUM(ti.total_price), 0)::bigint AS "totalProductSales"
+      FROM transaction_item ti
+      WHERE ti.deleted_at IS NULL
+      GROUP BY ti.transaction_id
+    ),
+    voucher_sales AS (
+      SELECT
+        vh.transaction_id,
+        COALESCE(SUM(vh.voucher_discount_amount), 0)::bigint AS "transactionVoucherDiscount"
+      FROM voucher_history vh
+      WHERE vh.deleted_at IS NULL
+      GROUP BY vh.transaction_id
+    )
+    SELECT
+      t.id AS "transactionId",
+      t.transaction_status::text AS "transactionStatus",
+      t.store_id AS "storeId",
+      s.name AS "storeName",
+      t.customer_id AS "customerId",
+      u.name AS "customerName",
+      u.email AS "customerEmail",
+      t.paid_at AS "paidAt",
+      t.updated_at AS "updatedAt",
+      COALESCE(t.paid_at, t.updated_at) AS "reportDate",
+      item_sales."totalItemsSold",
+      item_sales."totalProductSales",
+      COALESCE(voucher_sales."transactionVoucherDiscount", 0)::bigint AS "transactionVoucherDiscount",
+      t.delivery_fee::bigint AS "deliveryRevenue",
+      GREATEST(
+        item_sales."totalProductSales" - COALESCE(voucher_sales."transactionVoucherDiscount", 0),
+        0
+      )::bigint AS "totalRevenue"
+    FROM "transaction" t
+    JOIN item_sales ON item_sales.transaction_id = t.id
+    JOIN store s ON s.id = t.store_id
+    JOIN "user" u ON u.id = t.customer_id
+    LEFT JOIN voucher_sales ON voucher_sales.transaction_id = t.id
+    WHERE t.deleted_at IS NULL
+      AND t.transaction_status::text = ${SALES_REPORT_TRANSACTION_STATUS}
+      AND (${statusFilter}::text IS NULL OR t.transaction_status::text = ${statusFilter}::text)
+      AND COALESCE(t.paid_at, t.updated_at) >= ${startDate}
+      AND COALESCE(t.paid_at, t.updated_at) < ${endDate}
+      AND (${storeFilter}::text IS NULL OR t.store_id = ${storeFilter}::text)
+      AND (${search}::text IS NULL OR t.id ILIKE ${search} OR u.name ILIKE ${search} OR u.email ILIKE ${search})
+    ORDER BY "reportDate" DESC, t.id DESC
+  `;
+};
+
 export const countTransactionReportRows = async (
   startDate: Date,
   endDate: Date,

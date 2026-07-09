@@ -9,6 +9,7 @@ import {
   getProductSalesReportController,
   getProductTrendReportController,
   getSalesReportController,
+  getTransactionSalesReportExportController,
   getTransactionSalesReportController,
 } from "./adminSalesReport.controller.js";
 import {
@@ -17,6 +18,7 @@ import {
   salesReportProductRankingQuerySchema,
   salesReportProductTrendQuerySchema,
   salesReportQuerySchema,
+  salesReportTransactionExportQuerySchema,
   salesReportTransactionQuerySchema,
 } from "./adminSalesReport.schemas.js";
 
@@ -42,6 +44,12 @@ adminSalesReportRoutes.get(
   validateSchema(salesReportCategoryIdParamSchema, "params"),
   validateSchema(salesReportQuerySchema, "query"),
   getCategoryTrendReportController,
+);
+
+adminSalesReportRoutes.get(
+  "/transactions/export",
+  validateSchema(salesReportTransactionExportQuerySchema, "query"),
+  getTransactionSalesReportExportController,
 );
 
 adminSalesReportRoutes.get(
