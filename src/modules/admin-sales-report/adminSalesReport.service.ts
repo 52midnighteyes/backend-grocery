@@ -28,6 +28,7 @@ import {
   getProductTrendSalesRows,
   getProductTrendRows,
   getSalesTrendRows,
+  getTransactionReportExportRows,
   getTransactionReportRows,
 } from "./adminSalesReport.repository.js";
 import type {
@@ -36,8 +37,11 @@ import type {
   TSalesReportProductRankingQuery,
   TSalesReportProductTrendQuery,
   TSalesReportQuery,
+  TSalesReportTransactionExportQuery,
   TSalesReportTransactionQuery,
 } from "./adminSalesReport.schemas.js";
+
+const TRANSACTION_EXPORT_ROW_LIMIT = 10000;
 
 const resolveSalesReportScope = async (
   requesterId: string,
@@ -369,5 +373,46 @@ export const getTransactionSalesReportService = async (
       items: normalizeTransactionReportRows(rows),
     },
     meta: buildPaginationMeta(params.page, params.limit, total),
+  };
+};
+
+export const getTransactionSalesReportExportService = async (
+  params: TSalesReportTransactionExportQuery,
+  requesterId: string,
+) => {
+  const scope = await resolveSalesReportScope(requesterId, params.storeId);
+  const range = resolveDateRange(params);
+  const total = await countTransactionReportRows(
+    range.startDate,
+    range.endDate,
+    scope.storeId,
+    params.status,
+    params.q,
+  );
+
+  if (total > TRANSACTION_EXPORT_ROW_LIMIT) {
+    throw new AppError(
+      422,
+      "Rentang tanggal terlalu besar untuk diexport, silakan persempit",
+    );
+  }
+
+  const rows = await getTransactionReportExportRows(
+    range.startDate,
+    range.endDate,
+    scope.storeId,
+    params.status,
+    params.q,
+  );
+
+  return {
+    data: {
+      filters: {
+        ...buildFilterResponse(params, scope, range),
+        status: params.status ?? null,
+        q: params.q ?? null,
+      },
+      items: normalizeTransactionReportRows(rows),
+    },
   };
 };

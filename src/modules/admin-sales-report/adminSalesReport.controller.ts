@@ -6,6 +6,7 @@ import {
   getProductSalesReportService,
   getProductTrendReportService,
   getSalesReportService,
+  getTransactionSalesReportExportService,
   getTransactionSalesReportService,
 } from "./adminSalesReport.service.js";
 import type {
@@ -14,6 +15,7 @@ import type {
   TSalesReportProductRankingQuery,
   TSalesReportProductTrendQuery,
   TSalesReportQuery,
+  TSalesReportTransactionExportQuery,
   TSalesReportTransactionQuery,
 } from "./adminSalesReport.schemas.js";
 
@@ -155,6 +157,26 @@ export const getTransactionSalesReportController = async (
       message: "Transaction sales report fetched successfully",
       data: result.data,
       meta: result.meta,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getTransactionSalesReportExportController = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const result = await getTransactionSalesReportExportService(
+      req.validated?.query as TSalesReportTransactionExportQuery,
+      req.user!.id,
+    );
+
+    return res.status(200).json({
+      message: "Transaction sales report export fetched successfully",
+      data: result.data,
     });
   } catch (error) {
     next(error);
