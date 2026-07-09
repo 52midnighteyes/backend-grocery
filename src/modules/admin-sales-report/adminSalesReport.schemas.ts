@@ -123,7 +123,7 @@ export const salesReportCategoryIdParamSchema = z.object({
 export const salesReportTransactionQuerySchema = salesReportQueryBaseSchema
   .extend({
     status: z
-      .enum(["paid", "process", "onDelivery", "confirmed"])
+      .enum(["confirmed"])
       .optional(),
     q: optionalSearchQuery,
     page: optionalNumberQuery.default(1),
@@ -137,6 +137,18 @@ export const salesReportTransactionQuerySchema = salesReportQueryBaseSchema
     ...data,
     limit: Math.min(data.limit, 100),
   }));
+
+export const salesReportTransactionExportQuerySchema = salesReportQueryBaseSchema
+  .extend({
+    status: z
+      .enum(["confirmed"])
+      .optional(),
+    q: optionalSearchQuery,
+  })
+  .refine(dateRangeRefinement, {
+    message: "Start date cannot be after end date",
+    path: ["startDate"],
+  });
 
 export type TSalesReportQuery = z.infer<typeof salesReportQuerySchema>;
 export type TSalesReportProductTrendQuery = z.infer<
@@ -153,4 +165,7 @@ export type TSalesReportCategoryIdParam = z.infer<
 >;
 export type TSalesReportTransactionQuery = z.infer<
   typeof salesReportTransactionQuerySchema
+>;
+export type TSalesReportTransactionExportQuery = z.infer<
+  typeof salesReportTransactionExportQuerySchema
 >;
