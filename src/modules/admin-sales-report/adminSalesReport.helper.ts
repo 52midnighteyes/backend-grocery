@@ -155,6 +155,8 @@ export const normalizeSalesTrendRows = (
       transactionVoucherDiscount,
       deliveryRevenue: toNumber(row?.deliveryRevenue),
       totalRevenue,
+      totalDiscountAmount: toNumber(row?.totalDiscountAmount),
+      totalPromotionUsed: toNumber(row?.totalPromotionUsed),
       averageOrderValue:
         totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0,
     };
@@ -432,6 +434,14 @@ export const buildSalesSummary = (
     (total, row) => total + row.totalRevenue,
     0,
   );
+  const totalDiscountAmount = salesTrend.reduce(
+    (total, row) => total + row.totalDiscountAmount,
+    0,
+  );
+  const totalPromotionUsed = salesTrend.reduce(
+    (total, row) => total + row.totalPromotionUsed,
+    0,
+  );
 
   return {
     totalOrders,
@@ -440,6 +450,8 @@ export const buildSalesSummary = (
     transactionVoucherDiscount,
     deliveryRevenue,
     totalRevenue,
+    totalDiscountAmount,
+    totalPromotionUsed,
     averageOrderValue:
       totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0,
   };

@@ -1,5 +1,5 @@
 import { prisma } from "../../libs/prisma/prisma.lib.js";
-import { SALES_REPORT_TRANSACTION_STATUSES } from "./adminSalesReport.models.js";
+import { SALES_REPORT_TRANSACTION_STATUS } from "./adminSalesReport.models.js";
 import type {
   TCategoryShareRow,
   TCategoryTrendRow,
@@ -42,25 +42,65 @@ export const getSalesTrendRows = async (
   const period = getPeriodSql(granularity);
 
   return await prisma.$queryRaw<TSalesTrendRow[]>`
-    WITH transaction_sales AS (
+    WITH item_sales AS (
+      SELECT
+        ti.transaction_id,
+        COALESCE(SUM(ti.total_price), 0)::bigint AS "productSales",
+        COALESCE(SUM(ti.quantity), 0)::bigint AS "totalItemsSold"
+      FROM transaction_item ti
+      WHERE ti.deleted_at IS NULL
+      GROUP BY ti.transaction_id
+    ),
+    voucher_sales AS (
+      SELECT
+        vh.transaction_id,
+        COALESCE(SUM(vh.voucher_discount_amount), 0)::bigint AS "transactionVoucherDiscount",
+        COALESCE(COUNT(vh.voucher_id) FILTER (WHERE vh.voucher_id IS NOT NULL), 0)::bigint AS "transactionVoucherUsed",
+        COALESCE(COUNT(vh.delivery_voucher_id) FILTER (WHERE vh.delivery_voucher_id IS NOT NULL), 0)::bigint AS "deliveryVoucherUsed"
+      FROM voucher_history vh
+      WHERE vh.deleted_at IS NULL
+      GROUP BY vh.transaction_id
+    ),
+    discount_sales AS (
+      SELECT
+        dh.transaction_id,
+        COALESCE(SUM(dh.discount_amount) FILTER (WHERE dh.discount_type::text <> 'buyXGetY'), 0)::bigint AS "productDiscountAmount",
+        COALESCE(COUNT(dh.id), 0)::bigint AS "productDiscountUsed"
+      FROM discount_history dh
+      WHERE dh.deleted_at IS NULL
+        AND dh.transaction_id IS NOT NULL
+      GROUP BY dh.transaction_id
+    ),
+    transaction_sales AS (
       SELECT
         t.id,
         TO_CHAR(DATE_TRUNC(${period.trunc}, COALESCE(t.paid_at, t.updated_at)), ${period.format}) AS "period",
-        SUM(ti.total_price)::bigint AS "productSales",
-        SUM(ti.quantity)::bigint AS "totalItemsSold",
-        COALESCE(MAX(vh.voucher_discount_amount), 0)::bigint AS "transactionVoucherDiscount",
+        item_sales."productSales",
+        item_sales."totalItemsSold",
+        COALESCE(voucher_sales."transactionVoucherDiscount", 0)::bigint AS "transactionVoucherDiscount",
         t.delivery_fee::bigint AS "deliveryRevenue",
-        t.total_price::bigint AS "totalRevenue"
+        GREATEST(
+          item_sales."productSales" - COALESCE(voucher_sales."transactionVoucherDiscount", 0),
+          0
+        )::bigint AS "totalRevenue",
+        (
+          COALESCE(discount_sales."productDiscountAmount", 0) +
+          COALESCE(voucher_sales."transactionVoucherDiscount", 0)
+        )::bigint AS "totalDiscountAmount",
+        (
+          COALESCE(discount_sales."productDiscountUsed", 0) +
+          COALESCE(voucher_sales."transactionVoucherUsed", 0) +
+          COALESCE(voucher_sales."deliveryVoucherUsed", 0)
+        )::bigint AS "totalPromotionUsed"
       FROM "transaction" t
-      JOIN transaction_item ti ON ti.transaction_id = t.id
-      LEFT JOIN voucher_history vh ON vh.transaction_id = t.id
+      JOIN item_sales ON item_sales.transaction_id = t.id
+      LEFT JOIN voucher_sales ON voucher_sales.transaction_id = t.id
+      LEFT JOIN discount_sales ON discount_sales.transaction_id = t.id
       WHERE t.deleted_at IS NULL
-        AND ti.deleted_at IS NULL
-        AND t.transaction_status::text IN (${SALES_REPORT_TRANSACTION_STATUSES[0]}, ${SALES_REPORT_TRANSACTION_STATUSES[1]}, ${SALES_REPORT_TRANSACTION_STATUSES[2]}, ${SALES_REPORT_TRANSACTION_STATUSES[3]})
+        AND t.transaction_status::text = ${SALES_REPORT_TRANSACTION_STATUS}
         AND COALESCE(t.paid_at, t.updated_at) >= ${startDate}
         AND COALESCE(t.paid_at, t.updated_at) < ${endDate}
         AND (${storeFilter}::text IS NULL OR t.store_id = ${storeFilter}::text)
-      GROUP BY t.id, "period", t.delivery_fee, t.total_price
     )
     SELECT
       "period",
@@ -69,7 +109,9 @@ export const getSalesTrendRows = async (
       COALESCE(SUM("productSales"), 0)::bigint AS "productSales",
       COALESCE(SUM("transactionVoucherDiscount"), 0)::bigint AS "transactionVoucherDiscount",
       COALESCE(SUM("deliveryRevenue"), 0)::bigint AS "deliveryRevenue",
-      COALESCE(SUM("totalRevenue"), 0)::bigint AS "totalRevenue"
+      COALESCE(SUM("totalRevenue"), 0)::bigint AS "totalRevenue",
+      COALESCE(SUM("totalDiscountAmount"), 0)::bigint AS "totalDiscountAmount",
+      COALESCE(SUM("totalPromotionUsed"), 0)::bigint AS "totalPromotionUsed"
     FROM transaction_sales
     GROUP BY "period"
     ORDER BY "period" ASC
@@ -100,7 +142,7 @@ export const getCategoryTrendRows = async (
       AND ti.deleted_at IS NULL
       AND p.deleted_at IS NULL
       AND c.deleted_at IS NULL
-      AND t.transaction_status::text IN (${SALES_REPORT_TRANSACTION_STATUSES[0]}, ${SALES_REPORT_TRANSACTION_STATUSES[1]}, ${SALES_REPORT_TRANSACTION_STATUSES[2]}, ${SALES_REPORT_TRANSACTION_STATUSES[3]})
+      AND t.transaction_status::text = ${SALES_REPORT_TRANSACTION_STATUS}
       AND COALESCE(t.paid_at, t.updated_at) >= ${startDate}
       AND COALESCE(t.paid_at, t.updated_at) < ${endDate}
       AND (${storeFilter}::text IS NULL OR t.store_id = ${storeFilter}::text)
@@ -130,7 +172,7 @@ export const getCategoryShareRows = async (
       AND ti.deleted_at IS NULL
       AND p.deleted_at IS NULL
       AND c.deleted_at IS NULL
-      AND t.transaction_status::text IN (${SALES_REPORT_TRANSACTION_STATUSES[0]}, ${SALES_REPORT_TRANSACTION_STATUSES[1]}, ${SALES_REPORT_TRANSACTION_STATUSES[2]}, ${SALES_REPORT_TRANSACTION_STATUSES[3]})
+      AND t.transaction_status::text = ${SALES_REPORT_TRANSACTION_STATUS}
       AND COALESCE(t.paid_at, t.updated_at) >= ${startDate}
       AND COALESCE(t.paid_at, t.updated_at) < ${endDate}
       AND (${storeFilter}::text IS NULL OR t.store_id = ${storeFilter}::text)
@@ -166,7 +208,7 @@ export const getProductSalesRows = async (
       AND ti.deleted_at IS NULL
       AND p.deleted_at IS NULL
       AND c.deleted_at IS NULL
-      AND t.transaction_status::text IN (${SALES_REPORT_TRANSACTION_STATUSES[0]}, ${SALES_REPORT_TRANSACTION_STATUSES[1]}, ${SALES_REPORT_TRANSACTION_STATUSES[2]}, ${SALES_REPORT_TRANSACTION_STATUSES[3]})
+      AND t.transaction_status::text = ${SALES_REPORT_TRANSACTION_STATUS}
       AND COALESCE(t.paid_at, t.updated_at) >= ${startDate}
       AND COALESCE(t.paid_at, t.updated_at) < ${endDate}
       AND (${storeFilter}::text IS NULL OR t.store_id = ${storeFilter}::text)
@@ -207,7 +249,7 @@ export const getProductTrendSalesRows = async (
       AND ti.deleted_at IS NULL
       AND p.deleted_at IS NULL
       AND c.deleted_at IS NULL
-      AND t.transaction_status::text IN (${SALES_REPORT_TRANSACTION_STATUSES[0]}, ${SALES_REPORT_TRANSACTION_STATUSES[1]}, ${SALES_REPORT_TRANSACTION_STATUSES[2]}, ${SALES_REPORT_TRANSACTION_STATUSES[3]})
+      AND t.transaction_status::text = ${SALES_REPORT_TRANSACTION_STATUS}
       AND COALESCE(t.paid_at, t.updated_at) >= ${startDate}
       AND COALESCE(t.paid_at, t.updated_at) < ${endDate}
       AND (${storeFilter}::text IS NULL OR t.store_id = ${storeFilter}::text)
@@ -286,7 +328,7 @@ export const getProductTrendRows = async (
     WHERE t.deleted_at IS NULL
       AND ti.deleted_at IS NULL
       AND ti.product_id = ${productId}::text
-      AND t.transaction_status::text IN (${SALES_REPORT_TRANSACTION_STATUSES[0]}, ${SALES_REPORT_TRANSACTION_STATUSES[1]}, ${SALES_REPORT_TRANSACTION_STATUSES[2]}, ${SALES_REPORT_TRANSACTION_STATUSES[3]})
+      AND t.transaction_status::text = ${SALES_REPORT_TRANSACTION_STATUS}
       AND COALESCE(t.paid_at, t.updated_at) >= ${startDate}
       AND COALESCE(t.paid_at, t.updated_at) < ${endDate}
       AND (${storeFilter}::text IS NULL OR t.store_id = ${storeFilter}::text)
@@ -319,7 +361,7 @@ export const getCategoryDetailTrendRows = async (
       AND p.deleted_at IS NULL
       AND c.deleted_at IS NULL
       AND c.id = ${categoryId}::text
-      AND t.transaction_status::text IN (${SALES_REPORT_TRANSACTION_STATUSES[0]}, ${SALES_REPORT_TRANSACTION_STATUSES[1]}, ${SALES_REPORT_TRANSACTION_STATUSES[2]}, ${SALES_REPORT_TRANSACTION_STATUSES[3]})
+      AND t.transaction_status::text = ${SALES_REPORT_TRANSACTION_STATUS}
       AND COALESCE(t.paid_at, t.updated_at) >= ${startDate}
       AND COALESCE(t.paid_at, t.updated_at) < ${endDate}
       AND (${storeFilter}::text IS NULL OR t.store_id = ${storeFilter}::text)
@@ -357,6 +399,7 @@ export const getTransactionReportRows = async (
         vh.transaction_id,
         COALESCE(SUM(vh.voucher_discount_amount), 0)::bigint AS "transactionVoucherDiscount"
       FROM voucher_history vh
+      WHERE vh.deleted_at IS NULL
       GROUP BY vh.transaction_id
     )
     SELECT
@@ -374,14 +417,17 @@ export const getTransactionReportRows = async (
       item_sales."totalProductSales",
       COALESCE(voucher_sales."transactionVoucherDiscount", 0)::bigint AS "transactionVoucherDiscount",
       t.delivery_fee::bigint AS "deliveryRevenue",
-      t.total_price::bigint AS "totalRevenue"
+      GREATEST(
+        item_sales."totalProductSales" - COALESCE(voucher_sales."transactionVoucherDiscount", 0),
+        0
+      )::bigint AS "totalRevenue"
     FROM "transaction" t
     JOIN item_sales ON item_sales.transaction_id = t.id
     JOIN store s ON s.id = t.store_id
     JOIN "user" u ON u.id = t.customer_id
     LEFT JOIN voucher_sales ON voucher_sales.transaction_id = t.id
     WHERE t.deleted_at IS NULL
-      AND t.transaction_status::text IN (${SALES_REPORT_TRANSACTION_STATUSES[0]}, ${SALES_REPORT_TRANSACTION_STATUSES[1]}, ${SALES_REPORT_TRANSACTION_STATUSES[2]}, ${SALES_REPORT_TRANSACTION_STATUSES[3]})
+      AND t.transaction_status::text = ${SALES_REPORT_TRANSACTION_STATUS}
       AND (${statusFilter}::text IS NULL OR t.transaction_status::text = ${statusFilter}::text)
       AND COALESCE(t.paid_at, t.updated_at) >= ${startDate}
       AND COALESCE(t.paid_at, t.updated_at) < ${endDate}
@@ -415,7 +461,7 @@ export const countTransactionReportRows = async (
         WHERE ti.transaction_id = t.id
           AND ti.deleted_at IS NULL
       )
-      AND t.transaction_status::text IN (${SALES_REPORT_TRANSACTION_STATUSES[0]}, ${SALES_REPORT_TRANSACTION_STATUSES[1]}, ${SALES_REPORT_TRANSACTION_STATUSES[2]}, ${SALES_REPORT_TRANSACTION_STATUSES[3]})
+      AND t.transaction_status::text = ${SALES_REPORT_TRANSACTION_STATUS}
       AND (${statusFilter}::text IS NULL OR t.transaction_status::text = ${statusFilter}::text)
       AND COALESCE(t.paid_at, t.updated_at) >= ${startDate}
       AND COALESCE(t.paid_at, t.updated_at) < ${endDate}

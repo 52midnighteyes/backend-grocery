@@ -123,7 +123,7 @@ export const salesReportCategoryIdParamSchema = z.object({
 export const salesReportTransactionQuerySchema = salesReportQueryBaseSchema
   .extend({
     status: z
-      .enum(["paid", "process", "onDelivery", "confirmed"])
+      .enum(["confirmed"])
       .optional(),
     q: optionalSearchQuery,
     page: optionalNumberQuery.default(1),
